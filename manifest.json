@@ -1,19 +1,25 @@
 
 {
   "short_name": "Cisco CLI",
-  "name": "Cisco CLI Command Expert",
+  "name": "Cisco CLI AI Expert",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/919/919830.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/919/919830.png",
+      "sizes": "192x192",
+      "type": "image/png"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#020617",
   "background_color": "#020617",
   "orientation": "portrait",
-  "description": "Enterprise Cisco CLI Intelligence on the go."
+  "description": "Enterprise Cisco CLI Intelligence on the go.",
+  "categories": ["productivity", "education", "utilities"]
 }

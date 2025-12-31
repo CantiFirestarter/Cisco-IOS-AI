@@ -32,6 +32,22 @@ export default function App() {
   const [view, setView] = useState(() => (messages.length === 0 ? 'home' : 'chat'));
   const [hasApiKey, setHasApiKey] = useState(true);
   const [isCheckingKey, setIsCheckingKey] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setDeferredPrompt(null);
+    }
+  };
 
   const [dynamicSuggestions, setDynamicSuggestions] = useState(() => {
     try {
@@ -55,10 +71,9 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
-      // Check for specific platform key-selection availability
-      if (window.aistudio?.hasSelectedApiKey) {
+      if ((window as any).aistudio?.hasSelectedApiKey) {
         try {
-          const selected = await window.aistudio.hasSelectedApiKey();
+          const selected = await (window as any).aistudio.hasSelectedApiKey();
           setHasApiKey(selected);
         } catch (e) {
           console.warn("Key selection check unavailable", e);
@@ -70,9 +85,8 @@ export default function App() {
   }, []);
 
   const handleOpenKeySelection = async () => {
-    if (window.aistudio?.openSelectKey) {
-      await window.aistudio.openSelectKey();
-      // Assume success after trigger to avoid race condition
+    if ((window as any).aistudio?.openSelectKey) {
+      await (window as any).aistudio.openSelectKey();
       setHasApiKey(true);
     }
   };
@@ -146,7 +160,7 @@ export default function App() {
         metadata: result,
         grounded: !!result.sources?.length
       }]);
-    } catch (error) {
+    } catch (error: any) {
       const errorMsg = error.message?.includes("Requested entity was not found") 
         ? "API Access Revoked: Project not found or billing inactive. Please re-select your key."
         : "System Fault: Unable to reach Cisco CLI Synthesis node. Please check your connectivity.";
@@ -212,6 +226,11 @@ export default function App() {
         </button>
         
         <div className="flex items-center gap-2">
+          {deferredPrompt && (
+            <button onClick={handleInstallClick} className="hidden md:flex items-center gap-2 px-3 h-10 rounded-xl bg-blue-600 text-white text-xs font-bold animate-bounce-subtle">
+              <i className="fas fa-download"></i> Install App
+            </button>
+          )}
           <button onClick={() => setIsDark(!isDark)} className={`w-10 h-10 rounded-xl border flex items-center justify-center ${themeClasses.util}`}>
             <i className={`fas ${isDark ? 'fa-sun text-amber-400' : 'fa-moon'}`}></i>
           </button>
@@ -242,7 +261,7 @@ export default function App() {
               <p className="text-xs opacity-50 mb-8 max-w-xs">Awaiting syntax analysis or architectural query...</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
                 {dynamicSuggestions.map((s, i) => (
-                  <button key={i} onClick={() => setInputValue(s)} className={`p-3 rounded-xl border text-left text-xs font-medium transition-all ${themeClasses.suggestion}`}>{s}</button>
+                  <button key={i} onClick={() => { setInputValue(s); }} className={`p-3 rounded-xl border text-left text-xs font-medium transition-all ${themeClasses.suggestion}`}>{s}</button>
                 ))}
               </div>
             </div>
@@ -271,7 +290,7 @@ export default function App() {
 
         <div className={`p-4 border-t ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
           <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto items-center">
-            <button type="button" onClick={() => fileInputRef.current.click()} className={`p-3 rounded-xl border transition-colors ${themeClasses.util} hover:text-blue-500`}><i className="fas fa-camera"></i></button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} className={`p-3 rounded-xl border transition-colors ${themeClasses.util} hover:text-blue-500`}><i className="fas fa-camera"></i></button>
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
             <input 
               type="text" 
@@ -298,6 +317,8 @@ export default function App() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes bounce-subtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        .animate-bounce-subtle { animation: bounce-subtle 2s infinite; }
       `}</style>
     </div>
   );
