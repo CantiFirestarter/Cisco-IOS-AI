@@ -1,0 +1,5 @@
+{
+  "name": "Cisco IOS AI",
+  "description": "A specialized AI assistant for Cisco IOS, IOS XE, and IOS XR command syntax, usage, and troubleshooting.",
+  "requestFramePermissions": []
+}
