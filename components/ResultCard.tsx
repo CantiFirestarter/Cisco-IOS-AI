@@ -5,7 +5,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
   if (!text) return null;
   const lines = text.split('\n');
   const renderInline = (input) => {
-    // Regex to match **bold**, *italic*, and `code`
+    // Escaped backtick in regex for safety within the TSX environment
     const parts = input.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -29,11 +29,11 @@ const FormattedText = ({ text, isDark, className = "" }) => {
     <div className={`${className} flex flex-col gap-1`}>
       {lines.map((line, idx) => {
         const trimmed = line.trim();
-        // Handle bullet points
         if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) {
           const isNumberBullet = /^\d+\.\s/.test(trimmed);
+          const bulletMatch = trimmed.match(/^\d+\.\s/);
+          const bulletPrefix = isNumberBullet && bulletMatch ? bulletMatch[0] : '';
           const bulletContent = isNumberBullet ? trimmed.replace(/^\d+\.\s/, '') : trimmed.substring(2);
-          const bulletPrefix = isNumberBullet ? trimmed.match(/^\d+\.\s/)[0] : '';
 
           return (
             <div key={idx} className="flex gap-2 pl-1 mb-0.5">

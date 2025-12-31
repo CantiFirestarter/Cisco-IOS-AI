@@ -9,22 +9,26 @@ SPELL CHECK & SYNTAX CORRECTION:
 - Detect typos in CLI commands. Provide the corrected version in the 'correction' field.
 
 VISUAL ANALYSIS:
-- If the user provides an image, analyze it for CLI output, error messages, or network topology.
-- Incorporate visual findings into your reasoning and examples.
+- If an image is provided, analyze it for CLI output, log messages, or topology.
 
-GROUNDING:
-- If you use Google Search grounding, extract the source titles and URLs into the response.
+GROUNDING & SEARCH:
+- Use Google Search for the most current Cisco documentation, bug IDs, or firmware versions.
+- Extract source titles and URLs into the response.
 
 FORMATTING RULES:
-- IMPORTANT: In 'description', 'usageContext', 'options', and 'notes', you MUST wrap ALL CLI commands, keywords, parameters, and variables (e.g., \`vlan <id>\`, \`ip routing\`, \`no shutdown\`) in backticks (\`).
-- Use **bold** for major emphasis only.
-- 'options' should be a bulleted list where the command part is always in backticks.
-- Syntax and examples must be pure text with standard CLI prompts (e.g., Switch#).
+- IMPORTANT: Wrap ALL CLI commands, keywords, parameters, and variables in backticks (\`).
+- Use **bold** for major headings.
+- 'options' MUST be a bulleted list with commands in backticks (\`).
+- Syntax and examples must use standard CLI prompts (e.g., Router(config)#).
 - Always return a JSON object.
 `;
 
-export const getCiscoCommandInfo = async (query: string, imageBase64?: string, model: string = 'gemini-3-pro-preview') => {
+export const getCiscoCommandInfo = async (query: string, imageBase64?: string, modelId: string = 'gemini-3-pro-preview') => {
+  // Initialization must use named parameter 'apiKey'
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  // Per guidelines: Upgrade to 'gemini-3-pro-image-preview' for tasks involving search grounding.
+  const activeModel = modelId.includes('pro') ? 'gemini-3-pro-image-preview' : modelId;
   
   const contents: any[] = [];
   const parts: any[] = [{ text: query }];
@@ -40,17 +44,20 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
   
   contents.push({ parts });
 
-  const isComplex = query.length > 100 || query.toLowerCase().includes('design') || query.toLowerCase().includes('troubleshoot');
+  // Thinking config is only for Gemini 3 and 2.5 series.
+  const isComplex = query.length > 80 || /troubleshoot|design|architecture|bgp|ospf/i.test(query);
+  const thinkingBudget = activeModel.includes('pro') ? 16000 : (activeModel.includes('flash') ? 8000 : 0);
 
   try {
     const response = await ai.models.generateContent({
-      model: model,
+      model: activeModel,
       contents,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        tools: model.includes('pro') ? [{ googleSearch: {} }] : undefined,
-        thinkingConfig: (model.includes('pro') || model.includes('flash')) && isComplex ? { thinkingBudget: 8000 } : undefined,
+        // Google Search tool is only permitted for gemini-3-pro-image-preview
+        tools: activeModel.includes('pro') ? [{ googleSearch: {} }] : undefined,
+        thinkingConfig: isComplex && thinkingBudget > 0 ? { thinkingBudget } : undefined,
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -70,8 +77,11 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
       },
     });
 
-    const result = JSON.parse(response.text);
+    // Property .text is a getter, not a method.
+    const responseText = response.text || '{}';
+    const result = JSON.parse(responseText);
 
+    // Extract grounding sources from groundingMetadata if tool was triggered.
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
       result.sources = chunks
@@ -81,27 +91,24 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
 
     return result;
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("Cisco Intelligence Error:", error);
     throw error;
   }
 };
 
-/**
- * Generates 4 dynamic follow-up Cisco technical topics based on history.
- */
 export const getDynamicSuggestions = async (history: string[]) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = history.length > 0 
-    ? `Based on these recent Cisco CLI queries: [${history.join(', ')}], suggest 4 highly relevant, professional follow-up topics or commands. Keep them concise (under 30 chars).`
-    : "Suggest 4 foundational Cisco CLI topics for a network engineer (e.g. VLANs, OSPF, BGP).";
+    ? `Based on these Cisco queries: [${history.join(', ')}], suggest 4 relevant commands/topics under 30 chars.`
+    : "Suggest 4 core Cisco CLI topics (VLANs, OSPF, BGP, SSH).";
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: "You are a network training assistant. Return only a JSON array of strings.",
+        systemInstruction: "Return a JSON array of 4 strings.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -110,9 +117,8 @@ export const getDynamicSuggestions = async (history: string[]) => {
       }
     });
 
-    return JSON.parse(response.text);
+    return JSON.parse(response.text || '[]');
   } catch (error) {
-    console.warn("Failed to generate dynamic suggestions, using defaults.");
     return [
       'BGP neighbor configuration', 
       'OSPF areas on IOS XR', 
