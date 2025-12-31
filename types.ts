@@ -1,4 +1,9 @@
 
+export interface GroundingSource {
+  title: string;
+  uri: string;
+}
+
 export interface CiscoQueryResponse {
   reasoning: string;
   syntax: string;
@@ -9,7 +14,8 @@ export interface CiscoQueryResponse {
   examples: string;
   deviceCategory: 'Switch' | 'Router' | 'Universal';
   commandMode: string;
-  correction?: string; // New field for spell-check/syntax correction
+  correction?: string;
+  sources?: GroundingSource[];
 }
 
 export interface ChatMessage {
@@ -18,4 +24,5 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   metadata?: CiscoQueryResponse;
+  image?: string; // Base64 image data
 }
