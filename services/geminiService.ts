@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
@@ -32,12 +31,12 @@ FORMATTING RULES:
 5. ALWAYS return the response as a JSON object.
 `;
 
-export const getCiscoCommandInfo = async (query: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+export const getCiscoCommandInfo = async (query: string, model: string = 'gemini-3-pro-preview') => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: model,
       contents: [{ parts: [{ text: query }] }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,

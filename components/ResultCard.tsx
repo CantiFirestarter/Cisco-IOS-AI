@@ -4,26 +4,26 @@ import { CiscoQueryResponse } from '../types';
 
 interface ResultCardProps {
   data: CiscoQueryResponse;
+  isDark: boolean;
 }
 
-const FormattedText: React.FC<{ text: string; className?: string }> = ({ text, className = "" }) => {
+const FormattedText: React.FC<{ text: string; isDark: boolean; className?: string }> = ({ text, isDark, className = "" }) => {
   if (!text) return null;
 
-  // Split the text into lines to handle list items properly
   const lines = text.split('\n');
 
   const renderInline = (input: string) => {
     const parts = input.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-bold text-white">{part.slice(2, -2)}</strong>;
+        return <strong key={i} className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{part.slice(2, -2)}</strong>;
       }
       if (part.startsWith('*') && part.endsWith('*')) {
-        return <em key={i} className="italic text-slate-400">{part.slice(1, -1)}</em>;
+        return <em key={i} className={`italic ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{part.slice(1, -1)}</em>;
       }
       if (part.startsWith('`') && part.endsWith('`')) {
         return (
-          <code key={i} className="bg-slate-800 text-blue-400 px-1.5 py-0.5 rounded font-mono text-[0.85em] border border-slate-700">
+          <code key={i} className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
             {part.slice(1, -1)}
           </code>
         );
@@ -44,7 +44,7 @@ const FormattedText: React.FC<{ text: string; className?: string }> = ({ text, c
               <span className="text-blue-500 mt-1.5 text-[8px]">
                 <i className="fas fa-circle"></i>
               </span>
-              <span className="flex-1 text-slate-300 leading-relaxed">
+              <span className={`flex-1 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                 {renderInline(trimmed.substring(2))}
               </span>
             </div>
@@ -52,7 +52,9 @@ const FormattedText: React.FC<{ text: string; className?: string }> = ({ text, c
         }
 
         return line.trim() ? (
-          <div key={idx} className="leading-relaxed">{renderInline(line)}</div>
+          <div key={idx} className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+            {renderInline(line)}
+          </div>
         ) : (
           <div key={idx} className="h-1"></div>
         );
@@ -61,7 +63,7 @@ const FormattedText: React.FC<{ text: string; className?: string }> = ({ text, c
   );
 };
 
-const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
+const ResultCard: React.FC<ResultCardProps> = ({ data, isDark }) => {
   const [showReasoning, setShowReasoning] = useState(false);
 
   const Section = ({ 
@@ -84,12 +86,15 @@ const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
       </div>
       <div className={`
         p-4 rounded-xl border transition-all duration-300
-        ${isCode ? 'bg-black text-emerald-400 font-mono text-sm border-slate-800 shadow-inner' : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700 shadow-xl'}
+        ${isCode 
+          ? 'bg-black text-emerald-400 font-mono text-sm border-slate-800 shadow-inner' 
+          : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300 hover:border-blue-500/30`
+        }
       `}>
         {isCode ? (
           <div className="whitespace-pre-wrap leading-relaxed overflow-x-auto">{content}</div>
         ) : (
-          <FormattedText text={content} className="text-sm" />
+          <FormattedText text={content} isDark={isDark} className="text-sm" />
         )}
       </div>
     </div>
@@ -98,19 +103,19 @@ const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
   return (
     <div className="flex flex-col gap-4 animate-fadeIn">
       {/* Reasoning Toggle */}
-      <div className="bg-slate-900 rounded-xl overflow-hidden border border-slate-800">
+      <div className={`rounded-xl overflow-hidden border transition-colors ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
         <button 
           onClick={() => setShowReasoning(!showReasoning)}
-          className="w-full flex items-center justify-between px-4 py-2 hover:bg-slate-800 transition-colors"
+          className={`w-full flex items-center justify-between px-4 py-2 transition-colors ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-200'}`}
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2">
+          <span className={`text-[10px] font-bold uppercase flex items-center gap-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
             <i className="fas fa-brain text-blue-500"></i> AI Logic
           </span>
-          <i className={`fas fa-chevron-${showReasoning ? 'up' : 'down'} text-slate-600 text-[10px]`}></i>
+          <i className={`fas fa-chevron-${showReasoning ? 'up' : 'down'} text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}></i>
         </button>
         {showReasoning && (
-          <div className="px-4 py-3 bg-slate-950 border-t border-slate-800">
-            <FormattedText text={data.reasoning} className="text-xs text-slate-500 italic" />
+          <div className={`px-4 py-3 border-t transition-colors ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <FormattedText text={data.reasoning} isDark={isDark} className="text-xs italic opacity-70" />
           </div>
         )}
       </div>
@@ -121,7 +126,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
             title="Syntax" 
             icon="fa-terminal" 
             content={data.syntax} 
-            color="text-blue-400"
+            color="text-blue-500"
             isCode={true}
           />
         </div>
@@ -130,14 +135,14 @@ const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
           title="Description" 
           icon="fa-info-circle" 
           content={data.description} 
-          color="text-indigo-400"
+          color="text-indigo-500"
         />
         
         <Section 
           title="Context" 
           icon="fa-layer-group" 
           content={data.usageContext} 
-          color="text-teal-400"
+          color="text-teal-500"
         />
 
         <div className="col-span-1 md:col-span-2">
@@ -145,7 +150,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
             title="Options" 
             icon="fa-list-ul" 
             content={data.options} 
-            color="text-amber-400"
+            color="text-amber-500"
           />
         </div>
 
@@ -154,7 +159,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
             title="Notes" 
             icon="fa-exclamation-triangle" 
             content={data.notes} 
-            color="text-rose-400"
+            color="text-rose-500"
           />
         </div>
 
@@ -163,7 +168,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ data }) => {
             title="Examples" 
             icon="fa-code" 
             content={data.examples} 
-            color="text-emerald-400"
+            color="text-emerald-500"
             isCode={true}
           />
         </div>
