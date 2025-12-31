@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
@@ -8,34 +9,24 @@ SPELL CHECK & SYNTAX CORRECTION:
 - Detect typos in CLI commands. Provide the corrected version in the 'correction' field.
 
 VISUAL ANALYSIS:
-- If an image is provided, analyze it for CLI output, log messages, or topology.
+- If the user provides an image, analyze it for CLI output, error messages, or network topology.
+- Incorporate visual findings into your reasoning and examples.
 
-GROUNDING & SEARCH:
-- Use Google Search for the most current Cisco documentation, bug IDs, or firmware versions.
-- Extract source titles and URLs into the response.
+GROUNDING:
+- If you use Google Search grounding, extract the source titles and URLs into the response.
 
 FORMATTING RULES:
-- IMPORTANT: Wrap ALL CLI commands, keywords, parameters, and variables in backticks (\`).
-- Use **bold** for major headings.
-- 'options' MUST be a bulleted list with commands in backticks (\`).
-- Syntax and examples must use standard CLI prompts (e.g., Router(config)#).
+- IMPORTANT: In 'description', 'usageContext', 'options', and 'notes', you MUST wrap ALL CLI commands, keywords, parameters, and variables (e.g., \`vlan <id>\`, \`ip routing\`, \`no shutdown\`) in backticks (\`).
+- Use **bold** for major emphasis only.
+- 'options' should be a bulleted list where the command part is always in backticks.
+- Syntax and examples must be pure text with standard CLI prompts (e.g., Switch#).
 - Always return a JSON object.
 `;
 
-/**
- * Fetches command information from Gemini with optional search grounding and image analysis.
- * Uses gemini-3-pro-preview for complex tasks to ensure structured JSON output support.
- */
-export const getCiscoCommandInfo = async (query: string, imageBase64?: string, modelId: string = 'gemini-3-pro-preview') => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API_KEY environment variable is not defined.");
-
-  // Initialize client right before the call to ensure the latest API key is used
-  const ai = new GoogleGenAI({ apiKey });
+export const getCiscoCommandInfo = async (query: string, imageBase64?: string, model: string = 'gemini-3-pro-preview') => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // Use gemini-3-pro-preview for complex reasoning and search; gemini-3-pro-image-preview is optimized for image gen and lacks JSON support
-  const activeModel = modelId.includes('pro') ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
-  
+  const contents: any[] = [];
   const parts: any[] = [{ text: query }];
   
   if (imageBase64) {
@@ -47,20 +38,19 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
     });
   }
   
-  // Define thinking budget based on the selected model family (Max: Pro=32768, Flash=24576)
-  const isComplex = query.length > 80 || /troubleshoot|design|architecture|bgp|ospf/i.test(query);
-  const thinkingBudget = activeModel.includes('pro') ? 32768 : 24576;
+  contents.push({ parts });
+
+  const isComplex = query.length > 100 || query.toLowerCase().includes('design') || query.toLowerCase().includes('troubleshoot');
 
   try {
     const response = await ai.models.generateContent({
-      model: activeModel,
-      contents: [{ parts }],
+      model: model,
+      contents,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        // Only enable googleSearch for Pro models to prioritize speed on Flash/Lite options
-        tools: activeModel.includes('pro') ? [{ googleSearch: {} }] : undefined,
-        thinkingConfig: isComplex ? { thinkingBudget } : undefined,
+        tools: model.includes('pro') ? [{ googleSearch: {} }] : undefined,
+        thinkingConfig: (model.includes('pro') || model.includes('flash')) && isComplex ? { thinkingBudget: 8000 } : undefined,
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -80,12 +70,8 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
       },
     });
 
-    const responseText = response.text;
-    if (!responseText) throw new Error("Empty response from Cisco Intelligence Node");
+    const result = JSON.parse(response.text);
 
-    const result = JSON.parse(responseText.trim());
-
-    // Extract grounding sources from Metadata if search was used
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
       result.sources = chunks
@@ -95,30 +81,27 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
 
     return result;
   } catch (error) {
-    console.error("Cisco Intelligence Error:", error);
+    console.error("Gemini API Error:", error);
     throw error;
   }
 };
 
 /**
- * Generates dynamic command suggestions based on the user's recent chat history.
+ * Generates 4 dynamic follow-up Cisco technical topics based on history.
  */
 export const getDynamicSuggestions = async (history: string[]) => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return DEFAULT_SUGGESTIONS;
-
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = history.length > 0 
-    ? `Based on these Cisco queries: [${history.join(', ')}], suggest 4 relevant commands/topics under 30 chars.`
-    : "Suggest 4 core Cisco CLI topics (VLANs, OSPF, BGP, SSH).";
+    ? `Based on these recent Cisco CLI queries: [${history.join(', ')}], suggest 4 highly relevant, professional follow-up topics or commands. Keep them concise (under 30 chars).`
+    : "Suggest 4 foundational Cisco CLI topics for a network engineer (e.g. VLANs, OSPF, BGP).";
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: "Return a JSON array of exactly 4 strings.",
+        systemInstruction: "You are a network training assistant. Return only a JSON array of strings.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -127,15 +110,14 @@ export const getDynamicSuggestions = async (history: string[]) => {
       }
     });
 
-    return JSON.parse(response.text || '[]');
+    return JSON.parse(response.text);
   } catch (error) {
-    return DEFAULT_SUGGESTIONS;
+    console.warn("Failed to generate dynamic suggestions, using defaults.");
+    return [
+      'BGP neighbor configuration', 
+      'OSPF areas on IOS XR', 
+      'VLAN interface setup', 
+      'Show spanning-tree details'
+    ];
   }
 };
-
-const DEFAULT_SUGGESTIONS = [
-  'BGP neighbor configuration', 
-  'OSPF areas on IOS XR', 
-  'VLAN interface setup', 
-  'Show spanning-tree details'
-];
