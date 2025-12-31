@@ -7,6 +7,9 @@ export interface CiscoQueryResponse {
   options: string;
   notes: string;
   examples: string;
+  deviceCategory: 'Switch' | 'Router' | 'Universal';
+  commandMode: string;
+  correction?: string; // New field for spell-check/syntax correction
 }
 
 export interface ChatMessage {
