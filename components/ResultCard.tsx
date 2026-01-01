@@ -49,7 +49,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
   );
 };
 
-const Section = ({ title, icon, content, color, isDark, isCode = false }) => {
+const Section = ({ title, icon, content, color, isDark, isCode = false, onListen, isListening, isSynthesizing }) => {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -60,9 +60,28 @@ const Section = ({ title, icon, content, color, isDark, isCode = false }) => {
   return (
     <div className="mb-6 last:mb-0 relative group">
       <div className={`flex items-center justify-between mb-2`}>
-        <div className={`flex items-center gap-2 ${color}`}>
-          <i className={`fas ${icon} text-[10px] opacity-80`}></i>
-          <h3 className="font-bold uppercase text-[10px] tracking-widest">{title}</h3>
+        <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-2 ${color}`}>
+            <i className={`fas ${icon} text-[10px] opacity-80`}></i>
+            <h3 className="font-bold uppercase text-[10px] tracking-widest">{title}</h3>
+          </div>
+          {onListen && (
+            <button 
+              onClick={onListen}
+              disabled={isSynthesizing && !isListening}
+              className={`w-6 h-6 flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95 ${
+                isListening 
+                  ? 'bg-blue-600 text-white shadow-lg animate-pulse' 
+                  : isDark ? 'text-slate-600 hover:text-blue-400 bg-slate-900' : 'text-slate-400 hover:text-blue-600 bg-slate-100'
+              }`}
+            >
+              {isSynthesizing && !isListening ? (
+                <i className="fas fa-circle-notch fa-spin text-[8px]"></i>
+              ) : (
+                <i className={`fas ${isListening ? 'fa-stop' : 'fa-volume-up'} text-[8px]`}></i>
+              )}
+            </button>
+          )}
         </div>
         {isCode && (
           <button onClick={handleCopy} className={`text-[10px] flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
@@ -80,41 +99,57 @@ const Section = ({ title, icon, content, color, isDark, isCode = false }) => {
 
 export default function ResultCard({ data, isDark }) {
   const [showReasoning, setShowReasoning] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [activeSpeechId, setActiveSpeechId] = useState(null); // 'summary' or section title
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const audioSourceRef = useRef(null);
 
-  const toggleSpeech = async () => {
-    if (isSpeaking) {
-      if (audioSourceRef.current) {
-        audioSourceRef.current.stop();
-        audioSourceRef.current = null;
-      }
-      setIsSpeaking(false);
+  const stopCurrentSpeech = () => {
+    if (audioSourceRef.current) {
+      audioSourceRef.current.stop();
+      audioSourceRef.current = null;
+    }
+    setActiveSpeechId(null);
+  };
+
+  const handleToggleSpeech = async (id, text, prefix = "") => {
+    if (activeSpeechId === id) {
+      stopCurrentSpeech();
       return;
+    }
+
+    if (activeSpeechId !== null) {
+      stopCurrentSpeech();
     }
 
     try {
       setIsSynthesizing(true);
-      const textToSpeak = `Cisco command analysis. Command: ${data.syntax}. Category: ${data.deviceCategory}. Mode: ${data.commandMode}. Description: ${data.description.replace(/`/g, '')}`;
-      const { audioBuffer, audioCtx } = await synthesizeSpeech(textToSpeak);
+      const cleanText = text.replace(/`/g, '');
+      const fullSpeechText = prefix ? `${prefix}: ${cleanText}` : cleanText;
+      
+      const { audioBuffer, audioCtx } = await synthesizeSpeech(fullSpeechText);
       
       const source = audioCtx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(audioCtx.destination);
       source.onended = () => {
-        setIsSpeaking(false);
+        setActiveSpeechId(null);
         audioSourceRef.current = null;
       };
       
       source.start(0);
       audioSourceRef.current = source;
-      setIsSpeaking(true);
+      setActiveSpeechId(id);
     } catch (err) {
       console.error("Speech Synthesis Error:", err);
+      setActiveSpeechId(null);
     } finally {
       setIsSynthesizing(false);
     }
+  };
+
+  const playSummary = () => {
+    const summaryText = `Cisco command analysis. Command: ${data.syntax}. Category: ${data.deviceCategory}. Mode: ${data.commandMode}. Description: ${data.description.replace(/`/g, '')}. Usage Context: ${data.usageContext.replace(/`/g, '')}`;
+    handleToggleSpeech('summary', summaryText);
   };
 
   const getStyle = (type, val) => {
@@ -150,15 +185,15 @@ export default function ResultCard({ data, isDark }) {
         </div>
         <div className="flex-1 flex justify-end gap-2">
           <button 
-            onClick={toggleSpeech} 
-            disabled={isSynthesizing}
+            onClick={playSummary} 
+            disabled={isSynthesizing && activeSpeechId !== 'summary'}
             className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase flex items-center gap-2 transition-all ${
-              isSpeaking ? 'bg-blue-600 border-blue-500 text-white animate-pulse' : 
+              activeSpeechId === 'summary' ? 'bg-blue-600 border-blue-500 text-white animate-pulse' : 
               isDark ? 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
             }`}
           >
-            {isSynthesizing ? <i className="fas fa-circle-notch fa-spin"></i> : <i className={`fas ${isSpeaking ? 'fa-stop' : 'fa-volume-up'}`}></i>}
-            {isSpeaking ? 'Stop' : 'Listen'}
+            {isSynthesizing && activeSpeechId === 'summary' ? <i className="fas fa-circle-notch fa-spin"></i> : <i className={`fas ${activeSpeechId === 'summary' ? 'fa-stop' : 'fa-volume-up'}`}></i>}
+            {activeSpeechId === 'summary' ? 'Stop' : 'Listen All'}
           </button>
           
           <button onClick={() => setShowReasoning(!showReasoning)} className={`px-4 py-1.5 rounded-xl border text-[10px] font-bold uppercase flex items-center gap-2 transition-colors ${isDark ? 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'}`}>
@@ -174,23 +209,78 @@ export default function ResultCard({ data, isDark }) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-        <div className="col-span-1 md:col-span-2"><Section title="Syntax" icon="fa-terminal" content={data.syntax} color="text-blue-500" isDark={isDark} isCode={true} /></div>
-        <Section title="Description" icon="fa-info-circle" content={data.description} color="text-indigo-500" isDark={isDark} />
-        <Section title="Context" icon="fa-layer-group" content={data.usageContext} color="text-teal-500" isDark={isDark} />
-        <div className="col-span-1 md:col-span-2"><Section title="Configuration Checklist" icon="fa-tasks" content={data.checklist} color="text-cyan-400" isDark={isDark} /></div>
-        
-        {/* Changed Options to Sky Blue to separate it from Security/Notes */}
-        <div className="col-span-1 md:col-span-2"><Section title="Options" icon="fa-list-ul" content={data.options} color="text-sky-400" isDark={isDark} /></div>
-        
-        <div className="col-span-1 md:col-span-2"><Section title="Troubleshooting & Verification" icon="fa-tools" content={data.troubleshooting} color="text-fuchsia-500" isDark={isDark} /></div>
-        
-        {/* Security stands out more as the primary 'Orange' section */}
         <div className="col-span-1 md:col-span-2">
-            <Section title="Security Considerations" icon="fa-shield-halved" content={data.security} color="text-orange-500" isDark={isDark} />
+          <Section 
+            title="Syntax" icon="fa-terminal" content={data.syntax} color="text-blue-500" isDark={isDark} isCode={true} 
+            onListen={() => handleToggleSpeech('Syntax', data.syntax, "Command Syntax")}
+            isListening={activeSpeechId === 'Syntax'}
+            isSynthesizing={isSynthesizing}
+          />
+        </div>
+        <Section 
+          title="Description" icon="fa-info-circle" content={data.description} color="text-indigo-500" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Description', data.description, "Description")}
+          isListening={activeSpeechId === 'Description'}
+          isSynthesizing={isSynthesizing}
+        />
+        <Section 
+          title="Context" icon="fa-layer-group" content={data.usageContext} color="text-teal-500" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Context', data.usageContext, "Usage Context")}
+          isListening={activeSpeechId === 'Context'}
+          isSynthesizing={isSynthesizing}
+        />
+        <div className="col-span-1 md:col-span-2">
+          <Section 
+            title="Configuration Checklist" icon="fa-tasks" content={data.checklist} color="text-cyan-400" isDark={isDark} 
+            onListen={() => handleToggleSpeech('Checklist', data.checklist, "Configuration Checklist")}
+            isListening={activeSpeechId === 'Checklist'}
+            isSynthesizing={isSynthesizing}
+          />
         </div>
         
-        <div className="col-span-1 md:col-span-2"><Section title="Notes" icon="fa-exclamation-triangle" content={data.notes} color="text-rose-500" isDark={isDark} /></div>
-        <div className="col-span-1 md:col-span-2"><Section title="Examples" icon="fa-code" content={data.examples} color="text-emerald-500" isDark={isDark} isCode={true} /></div>
+        <div className="col-span-1 md:col-span-2">
+          <Section 
+            title="Options" icon="fa-list-ul" content={data.options} color="text-sky-400" isDark={isDark} 
+            onListen={() => handleToggleSpeech('Options', data.options, "Available Options")}
+            isListening={activeSpeechId === 'Options'}
+            isSynthesizing={isSynthesizing}
+          />
+        </div>
+        
+        <div className="col-span-1 md:col-span-2">
+          <Section 
+            title="Troubleshooting & Verification" icon="fa-tools" content={data.troubleshooting} color="text-fuchsia-500" isDark={isDark} 
+            onListen={() => handleToggleSpeech('Troubleshooting', data.troubleshooting, "Troubleshooting and Verification")}
+            isListening={activeSpeechId === 'Troubleshooting'}
+            isSynthesizing={isSynthesizing}
+          />
+        </div>
+        
+        <div className="col-span-1 md:col-span-2">
+            <Section 
+              title="Security Considerations" icon="fa-shield-halved" content={data.security} color="text-orange-500" isDark={isDark} 
+              onListen={() => handleToggleSpeech('Security', data.security, "Security Considerations")}
+              isListening={activeSpeechId === 'Security'}
+              isSynthesizing={isSynthesizing}
+            />
+        </div>
+        
+        <div className="col-span-1 md:col-span-2">
+          <Section 
+            title="Notes" icon="fa-exclamation-triangle" content={data.notes} color="text-rose-500" isDark={isDark} 
+            onListen={() => handleToggleSpeech('Notes', data.notes, "Important Notes")}
+            isListening={activeSpeechId === 'Notes'}
+            isSynthesizing={isSynthesizing}
+          />
+        </div>
+        <div className="col-span-1 md:col-span-2">
+          <Section 
+            title="Examples" icon="fa-code" content={data.examples} color="text-emerald-500" isDark={isDark} isCode={true} 
+            onListen={() => handleToggleSpeech('Examples', data.examples, "Configuration Examples")}
+            isListening={activeSpeechId === 'Examples'}
+            isSynthesizing={isSynthesizing}
+          />
+        </div>
       </div>
 
       {data.sources && data.sources.length > 0 && (
