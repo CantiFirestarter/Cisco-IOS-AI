@@ -9,7 +9,10 @@ export interface CiscoQueryResponse {
   syntax: string;
   description: string;
   usageContext: string;
+  checklist: string;
   options: string;
+  troubleshooting: string;
+  security: string;
   notes: string;
   examples: string;
   deviceCategory: 'Switch' | 'Router' | 'Universal';
