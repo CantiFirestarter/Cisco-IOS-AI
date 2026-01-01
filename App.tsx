@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getCiscoCommandInfo, getDynamicSuggestions } from './services/geminiService';
+import { getCiscoCommandInfo, getDynamicSuggestions } from './services/azureOpenAIService';
 import ResultCard from './components/ResultCard';
 
 const MODELS = [

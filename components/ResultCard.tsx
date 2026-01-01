@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { synthesizeSpeech } from '../services/geminiService';
+import { synthesizeSpeech } from '../services/azureOpenAIService';
 
 const FormattedText = ({ text, isDark, className = "" }) => {
   if (!text) return null;

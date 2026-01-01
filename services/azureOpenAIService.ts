@@ -1,12 +1,11 @@
-
-// Client-side helpers to call the serverless Gemini proxy
+// Client-side helpers to call the Azure OpenAI proxy
 
 /**
- * Fetches command information from Gemini API via serverless function
+ * Fetches command information from Azure OpenAI via serverless function
  */
-export const getCiscoCommandInfo = async (query: string, imageBase64?: string, model: string = 'gemini-3-pro-preview', forceSearch: boolean = false) => {
+export const getCiscoCommandInfo = async (query: string, imageBase64?: string, model: string = 'gpt-4o-mini', forceSearch: boolean = false) => {
   try {
-    const response = await fetch('/api/gemini', {
+    const response = await fetch('/api/azure-openai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -27,7 +26,7 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
     const result = await response.json();
     return result;
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("Azure OpenAI API Error:", error);
     throw error;
   }
 };
@@ -41,7 +40,7 @@ export const getDynamicSuggestions = async (history: string[]) => {
     : "Suggest 4 foundational Cisco CLI topics.";
 
   try {
-    const response = await fetch('/api/gemini', {
+    const response = await fetch('/api/azure-openai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -96,11 +95,15 @@ async function decodeAudioData(
 }
 
 export const synthesizeSpeech = async (text: string) => {
-  const response = await fetch('/api/gemini', {
+  const response = await fetch('/api/azure-openai', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'tts', text })
   });
+
+  if (response.status === 501) {
+    throw new Error('TTS is not supported with the current Azure OpenAI backend.');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
