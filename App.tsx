@@ -66,8 +66,6 @@ export default function App() {
     if (!window.visualViewport) return;
 
     const handleResize = () => {
-      // On some mobile browsers, the height of the visual viewport correctly excludes the keyboard.
-      // We set the height of our main container to match exactly the visible space.
       setViewportHeight(`${window.visualViewport.height}px`);
     };
 
@@ -322,59 +320,79 @@ export default function App() {
     );
   }
 
+  // Condensed model name logic for the header button
+  const getShortModelName = () => {
+    if (isResearchMode) return 'Research';
+    const parts = selectedModel.name.split(' ');
+    // "Gemini 3 Pro" -> "3 Pro"
+    // "Gemini Flash Lite" -> "Flash Lite"
+    return parts.slice(1).join(' ');
+  };
+
   return (
     <div style={{ height: viewportHeight }} className={`flex flex-col transition-colors duration-300 overflow-hidden ${themeClasses.bg}`}>
-      <header className={`border-b p-4 pb-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between z-10 shrink-0 ${themeClasses.header}`}>
+      <header className={`border-b p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between z-10 shrink-0 ${themeClasses.header}`}>
         <button
           onClick={goHome}
-          className="flex items-center gap-3 group text-left transition-transform active:scale-95"
+          className="flex items-center gap-2 sm:gap-3 group text-left transition-transform active:scale-95 overflow-hidden"
         >
-          <div className="bg-blue-600 p-2 rounded-lg shadow-lg group-hover:bg-blue-500 transition-colors group-hover:scale-105 transform shrink-0">
-            <i className="fas fa-network-wired text-xl text-white"></i>
+          <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg shadow-lg group-hover:bg-blue-500 transition-colors group-hover:scale-105 transform shrink-0">
+            <i className="fas fa-network-wired text-base sm:text-xl text-white"></i>
           </div>
           <div className="flex flex-col overflow-hidden">
-            <h1 className="font-bold text-base sm:text-lg leading-tight tracking-tight group-hover:text-blue-500 transition-colors truncate">Cisco CLI Expert</h1>
-            <p className={`text-[9px] sm:text-[10px] uppercase tracking-widest font-semibold hidden xs:block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            <h1 className="font-bold text-sm sm:text-lg leading-tight tracking-tight group-hover:text-blue-500 transition-colors truncate">Cisco CLI Expert</h1>
+            <p className={`text-[7px] sm:text-[10px] uppercase tracking-[0.1em] sm:tracking-[0.15em] font-bold block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
               {isDark ? 'DARK INTELLIGENCE OPS' : 'ENTERPRISE LIGHT PROTOCOL'}
             </p>
           </div>
         </button>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={handleClearHistory}
-            className={`px-2 sm:px-3 h-10 rounded-xl border transition-all flex items-center gap-2 ${clearConfirmState
+            className={`px-2 sm:px-3 h-8 sm:h-10 rounded-xl border transition-all flex items-center gap-2 ${clearConfirmState
                 ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
                 : `${themeClasses.util} hover:text-rose-500`
               }`}
           >
-            <i className={`fas ${clearConfirmState ? 'fa-exclamation-triangle' : 'fa-trash-alt'}`}></i>
+            <i className={`fas ${clearConfirmState ? 'fa-exclamation-triangle' : 'fa-trash-alt'} text-xs sm:text-sm`}></i>
             {clearConfirmState && <span className="text-[10px] font-bold uppercase hidden sm:inline">Reset?</span>}
           </button>
 
-          <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-xl border w-10 h-10 flex items-center justify-center ${themeClasses.util}`}>
-            <i className={`fas ${isDark ? 'fa-sun text-amber-400' : 'fa-moon'}`}></i>
+          <button onClick={() => setIsDark(!isDark)} className={`p-1.5 sm:p-2 rounded-xl border w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center ${themeClasses.util}`}>
+            <i className={`fas ${isDark ? 'fa-sun text-amber-400' : 'fa-moon'} text-xs sm:text-sm`}></i>
           </button>
 
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`hidden md:flex items-center gap-3 px-4 h-10 rounded-xl border ${themeClasses.util}`}>
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span className="text-xs font-semibold">{isResearchMode ? 'Research Active' : selectedModel.name.split(' ').slice(1).join(' ')}</span>
-              <i className="fas fa-chevron-down text-[10px] opacity-40 ml-1"></i>
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className={`flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 h-8 sm:h-10 rounded-xl border transition-all ${themeClasses.util} ${isMenuOpen ? 'ring-2 ring-blue-500/50' : ''}`}
+            >
+              <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isResearchMode ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+              <span className="text-[10px] sm:text-xs font-bold sm:font-semibold truncate max-w-[50px] sm:max-w-none">
+                {getShortModelName()}
+              </span>
+              <i className="fas fa-chevron-down text-[8px] sm:text-[10px] opacity-40 ml-0.5"></i>
             </button>
+            
             {isMenuOpen && (
-              <div className={`absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl z-50 animate-menuIn ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`absolute right-0 mt-2 w-56 sm:w-64 rounded-xl border shadow-2xl z-50 animate-menuIn ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className="p-2 space-y-1">
+                  <div className="px-3 py-2 text-[9px] uppercase tracking-widest font-bold opacity-40 border-b border-white/5 mb-1">Select Engine</div>
                   {MODELS.map((m) => (
-                    <button key={m.id} onClick={() => { setSelectedModel(m); setIsMenuOpen(false); setIsResearchMode(false); }} className={`w-full text-left p-3 rounded-lg ${selectedModel.id === m.id && !isResearchMode ? 'bg-blue-600/20 text-blue-400' : 'hover:bg-opacity-10 hover:bg-slate-500 text-slate-400'}`}>
-                      <div className="text-xs font-bold">{m.name}</div>
-                      <div className="text-[10px] opacity-60">{m.desc}</div>
+                    <button 
+                      key={m.id} 
+                      onClick={() => { setSelectedModel(m); setIsMenuOpen(false); setIsResearchMode(false); }} 
+                      className={`w-full text-left p-2.5 sm:p-3 rounded-lg transition-colors ${selectedModel.id === m.id && !isResearchMode ? 'bg-blue-600/20 text-blue-400' : 'hover:bg-opacity-10 hover:bg-slate-500 text-slate-400'}`}
+                    >
+                      <div className="text-[11px] sm:text-xs font-bold">{m.name}</div>
+                      <div className="text-[9px] sm:text-[10px] opacity-60 line-clamp-1">{m.desc}</div>
                     </button>
                   ))}
                   {isAiStudioEnv && (
                     <>
-                      <div className="h-px bg-slate-800 my-1 mx-2"></div>
-                      <button onClick={handleOpenKeySelection} className="w-full text-left p-3 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors">
+                      <div className="h-px bg-slate-800 my-1 mx-2 opacity-50"></div>
+                      <button onClick={handleOpenKeySelection} className="w-full text-left p-2.5 sm:p-3 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors">
                         <div className="text-[10px] font-bold uppercase tracking-wider"><i className="fas fa-sync-alt mr-2"></i>Change API Key</div>
                       </button>
                     </>
@@ -577,9 +595,6 @@ export default function App() {
         .animate-menuIn { animation: menuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: ${isDark ? '#1e293b' : '#cbd5e1'}; border-radius: 10px; }
-        @media (max-width: 400px) {
-          .xs\\:block { display: block !important; }
-        }
       `}</style>
     </div>
   );
