@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Cisco CLI Command Expert</title>
     
     <!-- PWA / Mobile Meta Tags -->
@@ -16,6 +16,22 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sar: env(safe-area-inset-right);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+      }
+      body {
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Prevent text size adjustment on orientation change */
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+    </style>
 <script type="importmap">
 {
   "imports": {
@@ -29,7 +45,7 @@
 }
 </script>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen overflow-hidden">
+<body class="bg-slate-950 text-slate-100 h-[100dvh] overflow-hidden">
     <div id="root"></div>
     <!-- Entry point for the Vite build system -->
     <script type="module" src="/index.tsx"></script>

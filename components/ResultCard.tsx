@@ -16,7 +16,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
       }
       if (part.startsWith('`') && part.endsWith('`')) {
         return (
-          <code key={i} className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
+          <code key={i} className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm break-all ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
             {part.slice(1, -1)}
           </code>
         );
@@ -36,7 +36,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
 
           return (
             <div key={idx} className="flex gap-2 pl-1 mb-0.5">
-              <span className={`text-[10px] mt-1 shrink-0 font-bold ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+              <span className={`text-[10px] mt-1.5 shrink-0 font-bold ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
                 {isNumberBullet ? bulletPrefix : <i className="fas fa-circle text-[6px] text-blue-500/60"></i>}
               </span>
               <span className={`flex-1 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{renderInline(bulletContent)}</span>
@@ -58,18 +58,18 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
   };
 
   return (
-    <div className="mb-6 last:mb-0 relative group">
+    <div className="mb-4 sm:mb-6 last:mb-0 relative group">
       <div className={`flex items-center justify-between mb-2`}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className={`flex items-center gap-2 ${color}`}>
             <i className={`fas ${icon} text-[10px] opacity-80`}></i>
-            <h3 className="font-bold uppercase text-[10px] tracking-widest">{title}</h3>
+            <h3 className="font-bold uppercase text-[9px] sm:text-[10px] tracking-widest">{title}</h3>
           </div>
           {onListen && (
             <button 
               onClick={onListen}
               disabled={isSynthesizing && !isListening}
-              className={`w-6 h-6 flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95 ${
+              className={`w-7 h-7 sm:w-6 sm:h-6 flex items-center justify-center rounded-full transition-all active:scale-90 ${
                 isListening 
                   ? 'bg-blue-600 text-white shadow-lg animate-pulse' 
                   : isDark ? 'text-slate-600 hover:text-blue-400 bg-slate-900' : 'text-slate-400 hover:text-blue-600 bg-slate-100'
@@ -84,14 +84,14 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
           )}
         </div>
         {isCode && (
-          <button onClick={handleCopy} className={`text-[10px] flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
+          <button onClick={handleCopy} className={`text-[9px] sm:text-[10px] flex items-center gap-1.5 px-2 py-1.5 sm:py-1 rounded transition-colors active:scale-95 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
             <i className={`fas ${copied ? 'fa-check text-emerald-500' : 'fa-copy'}`}></i>
             {copied ? 'Copied' : 'Copy'}
           </button>
         )}
       </div>
-      <div className={`p-4 rounded-xl border transition-all duration-300 ${isCode ? 'bg-black text-emerald-400 font-mono text-sm border-slate-800' : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300`}`}>
-        {isCode ? <div className="whitespace-pre-wrap leading-relaxed overflow-x-auto">{content}</div> : <FormattedText text={content} isDark={isDark} className="text-sm" />}
+      <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${isCode ? 'bg-black text-emerald-400 font-mono text-xs sm:text-sm border-slate-800' : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300`}`}>
+        {isCode ? <div className="whitespace-pre-wrap leading-relaxed overflow-x-auto touch-pan-x">{content}</div> : <FormattedText text={content} isDark={isDark} className="text-xs sm:text-sm" />}
       </div>
     </div>
   );
@@ -99,7 +99,7 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
 
 export default function ResultCard({ data, isDark }) {
   const [showReasoning, setShowReasoning] = useState(false);
-  const [activeSpeechId, setActiveSpeechId] = useState(null); // 'summary' or section title
+  const [activeSpeechId, setActiveSpeechId] = useState(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const audioSourceRef = useRef(null);
 
@@ -168,7 +168,7 @@ export default function ResultCard({ data, isDark }) {
   const modeS = getStyle('mode', data.commandMode);
 
   return (
-    <div className="flex flex-col gap-4 animate-fadeIn">
+    <div className="flex flex-col gap-4 animate-fadeIn w-full overflow-hidden">
       {data.correction && (
         <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border animate-bounce-subtle ${isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
           <i className="fas fa-magic text-xs"></i>
@@ -177,110 +177,102 @@ export default function ResultCard({ data, isDark }) {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase ${catS.bg} ${catS.text} ${catS.border}`}>
+        <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full border text-[9px] sm:text-[10px] font-bold uppercase ${catS.bg} ${catS.text} ${catS.border}`}>
           <i className={`fas ${catS.icon}`}></i>{data.deviceCategory}
         </div>
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase ${modeS.bg} ${modeS.text} ${modeS.border}`}>
+        <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full border text-[9px] sm:text-[10px] font-bold uppercase ${modeS.bg} ${modeS.text} ${modeS.border}`}>
           <i className={`fas ${modeS.icon}`}></i>{data.commandMode}
         </div>
-        <div className="flex-1 flex justify-end gap-2">
+        
+        <div className="w-full sm:w-auto flex flex-1 justify-end gap-1.5 sm:gap-2">
           <button 
             onClick={playSummary} 
             disabled={isSynthesizing && activeSpeechId !== 'summary'}
-            className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase flex items-center gap-2 transition-all ${
+            className={`px-3 py-1.5 rounded-xl border text-[9px] sm:text-[10px] font-bold uppercase flex items-center gap-2 transition-all active:scale-95 ${
               activeSpeechId === 'summary' ? 'bg-blue-600 border-blue-500 text-white animate-pulse' : 
               isDark ? 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
             }`}
           >
             {isSynthesizing && activeSpeechId === 'summary' ? <i className="fas fa-circle-notch fa-spin"></i> : <i className={`fas ${activeSpeechId === 'summary' ? 'fa-stop' : 'fa-volume-up'}`}></i>}
-            {activeSpeechId === 'summary' ? 'Stop' : 'Listen All'}
+            <span className="hidden xs:inline">{activeSpeechId === 'summary' ? 'Stop' : 'Listen All'}</span>
           </button>
           
-          <button onClick={() => setShowReasoning(!showReasoning)} className={`px-4 py-1.5 rounded-xl border text-[10px] font-bold uppercase flex items-center gap-2 transition-colors ${isDark ? 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'}`}>
-            <i className="fas fa-brain text-blue-500"></i> Logic {showReasoning ? '▲' : '▼'}
+          <button onClick={() => setShowReasoning(!showReasoning)} className={`px-3 py-1.5 rounded-xl border text-[9px] sm:text-[10px] font-bold uppercase flex items-center gap-2 transition-colors active:scale-95 ${isDark ? 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'}`}>
+            <i className="fas fa-brain text-blue-500"></i> <span className="hidden xs:inline">Logic</span> {showReasoning ? '▲' : '▼'}
           </button>
         </div>
       </div>
 
       {showReasoning && (
         <div className={`px-4 py-3 rounded-xl border animate-menuIn ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-          <FormattedText text={data.reasoning} isDark={isDark} className="text-xs italic opacity-70" />
+          <FormattedText text={data.reasoning} isDark={isDark} className="text-[11px] sm:text-xs italic opacity-70" />
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-        <div className="col-span-1 md:col-span-2">
-          <Section 
-            title="Syntax" icon="fa-terminal" content={data.syntax} color="text-blue-500" isDark={isDark} isCode={true} 
-            onListen={() => handleToggleSpeech('Syntax', data.syntax, "Command Syntax")}
-            isListening={activeSpeechId === 'Syntax'}
-            isSynthesizing={isSynthesizing}
-          />
-        </div>
+      <div className="flex flex-col gap-y-2">
         <Section 
-          title="Description" icon="fa-info-circle" content={data.description} color="text-indigo-500" isDark={isDark} 
-          onListen={() => handleToggleSpeech('Description', data.description, "Description")}
-          isListening={activeSpeechId === 'Description'}
+          title="Syntax" icon="fa-terminal" content={data.syntax} color="text-blue-500" isDark={isDark} isCode={true} 
+          onListen={() => handleToggleSpeech('Syntax', data.syntax, "Command Syntax")}
+          isListening={activeSpeechId === 'Syntax'}
           isSynthesizing={isSynthesizing}
         />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+          <Section 
+            title="Description" icon="fa-info-circle" content={data.description} color="text-indigo-500" isDark={isDark} 
+            onListen={() => handleToggleSpeech('Description', data.description, "Description")}
+            isListening={activeSpeechId === 'Description'}
+            isSynthesizing={isSynthesizing}
+          />
+          <Section 
+            title="Context" icon="fa-layer-group" content={data.usageContext} color="text-teal-500" isDark={isDark} 
+            onListen={() => handleToggleSpeech('Context', data.usageContext, "Usage Context")}
+            isListening={activeSpeechId === 'Context'}
+            isSynthesizing={isSynthesizing}
+          />
+        </div>
+
         <Section 
-          title="Context" icon="fa-layer-group" content={data.usageContext} color="text-teal-500" isDark={isDark} 
-          onListen={() => handleToggleSpeech('Context', data.usageContext, "Usage Context")}
-          isListening={activeSpeechId === 'Context'}
+          title="Configuration Checklist" icon="fa-tasks" content={data.checklist} color="text-cyan-400" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Checklist', data.checklist, "Configuration Checklist")}
+          isListening={activeSpeechId === 'Checklist'}
           isSynthesizing={isSynthesizing}
         />
-        <div className="col-span-1 md:col-span-2">
-          <Section 
-            title="Configuration Checklist" icon="fa-tasks" content={data.checklist} color="text-cyan-400" isDark={isDark} 
-            onListen={() => handleToggleSpeech('Checklist', data.checklist, "Configuration Checklist")}
-            isListening={activeSpeechId === 'Checklist'}
-            isSynthesizing={isSynthesizing}
-          />
-        </div>
         
-        <div className="col-span-1 md:col-span-2">
-          <Section 
-            title="Options" icon="fa-list-ul" content={data.options} color="text-sky-400" isDark={isDark} 
-            onListen={() => handleToggleSpeech('Options', data.options, "Available Options")}
-            isListening={activeSpeechId === 'Options'}
-            isSynthesizing={isSynthesizing}
-          />
-        </div>
+        <Section 
+          title="Options" icon="fa-list-ul" content={data.options} color="text-sky-400" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Options', data.options, "Available Options")}
+          isListening={activeSpeechId === 'Options'}
+          isSynthesizing={isSynthesizing}
+        />
         
-        <div className="col-span-1 md:col-span-2">
-          <Section 
-            title="Troubleshooting & Verification" icon="fa-tools" content={data.troubleshooting} color="text-fuchsia-500" isDark={isDark} 
-            onListen={() => handleToggleSpeech('Troubleshooting', data.troubleshooting, "Troubleshooting and Verification")}
-            isListening={activeSpeechId === 'Troubleshooting'}
-            isSynthesizing={isSynthesizing}
-          />
-        </div>
+        <Section 
+          title="Troubleshooting & Verification" icon="fa-tools" content={data.troubleshooting} color="text-fuchsia-500" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Troubleshooting', data.troubleshooting, "Troubleshooting and Verification")}
+          isListening={activeSpeechId === 'Troubleshooting'}
+          isSynthesizing={isSynthesizing}
+        />
         
-        <div className="col-span-1 md:col-span-2">
-            <Section 
-              title="Security Considerations" icon="fa-shield-halved" content={data.security} color="text-orange-500" isDark={isDark} 
-              onListen={() => handleToggleSpeech('Security', data.security, "Security Considerations")}
-              isListening={activeSpeechId === 'Security'}
-              isSynthesizing={isSynthesizing}
-            />
-        </div>
+        <Section 
+          title="Security Considerations" icon="fa-shield-halved" content={data.security} color="text-orange-500" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Security', data.security, "Security Considerations")}
+          isListening={activeSpeechId === 'Security'}
+          isSynthesizing={isSynthesizing}
+        />
         
-        <div className="col-span-1 md:col-span-2">
-          <Section 
-            title="Notes" icon="fa-exclamation-triangle" content={data.notes} color="text-rose-500" isDark={isDark} 
-            onListen={() => handleToggleSpeech('Notes', data.notes, "Important Notes")}
-            isListening={activeSpeechId === 'Notes'}
-            isSynthesizing={isSynthesizing}
-          />
-        </div>
-        <div className="col-span-1 md:col-span-2">
-          <Section 
-            title="Examples" icon="fa-code" content={data.examples} color="text-emerald-500" isDark={isDark} isCode={true} 
-            onListen={() => handleToggleSpeech('Examples', data.examples, "Configuration Examples")}
-            isListening={activeSpeechId === 'Examples'}
-            isSynthesizing={isSynthesizing}
-          />
-        </div>
+        <Section 
+          title="Notes" icon="fa-exclamation-triangle" content={data.notes} color="text-rose-500" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Notes', data.notes, "Important Notes")}
+          isListening={activeSpeechId === 'Notes'}
+          isSynthesizing={isSynthesizing}
+        />
+
+        <Section 
+          title="Examples" icon="fa-code" content={data.examples} color="text-emerald-500" isDark={isDark} isCode={true} 
+          onListen={() => handleToggleSpeech('Examples', data.examples, "Configuration Examples")}
+          isListening={activeSpeechId === 'Examples'}
+          isSynthesizing={isSynthesizing}
+        />
       </div>
 
       {data.sources && data.sources.length > 0 && (
@@ -288,7 +280,7 @@ export default function ResultCard({ data, isDark }) {
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Live References</div>
           <div className="flex flex-wrap gap-2">
             {data.sources.map((s, i) => (
-              <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition-colors ${isDark ? 'bg-slate-900 border-slate-800 text-blue-400 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-blue-600 hover:bg-slate-100'}`}>
+              <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg border text-[11px] sm:text-xs transition-colors active:scale-95 ${isDark ? 'bg-slate-900 border-slate-800 text-blue-400 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-blue-600 hover:bg-slate-100'}`}>
                 <i className="fas fa-external-link-alt text-[10px]"></i>{s.title}
               </a>
             ))}

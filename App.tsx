@@ -33,6 +33,7 @@ export default function App() {
   const [view, setView] = useState(() => (messages.length === 0 ? 'home' : 'chat'));
   const [hasApiKey, setHasApiKey] = useState(true); 
   const [isCheckingKey, setIsCheckingKey] = useState(true);
+  const [isAiStudioEnv, setIsAiStudioEnv] = useState(false);
 
   const [dynamicSuggestions, setDynamicSuggestions] = useState(() => {
     try {
@@ -105,10 +106,6 @@ export default function App() {
         
         if (event.error === 'not-allowed') {
           alert("Microphone access was denied. Please check your browser's site permissions.");
-        } else if (event.error === 'no-speech') {
-          // Silent failure for no speech is fine, just reset state
-        } else if (event.error === 'network') {
-          alert("Speech recognition requires an internet connection.");
         }
       };
 
@@ -122,9 +119,14 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+      const isStudio = !!(window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function');
+      setIsAiStudioEnv(isStudio);
+      
+      if (isStudio) {
         const selected = await window.aistudio.hasSelectedApiKey();
         setHasApiKey(selected);
+      } else {
+        setHasApiKey(true);
       }
       setIsCheckingKey(false);
     };
@@ -132,9 +134,11 @@ export default function App() {
   }, []);
 
   const handleOpenKeySelection = async () => {
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+    if (isAiStudioEnv) {
       await window.aistudio.openSelectKey();
       setHasApiKey(true); 
+    } else {
+      alert("API Key selection is managed via environment variables in this deployment.");
     }
   };
 
@@ -237,15 +241,15 @@ export default function App() {
         metadata: result
       }]);
     } catch (error) {
-      if (error.message?.includes("Requested entity was not found")) {
+      if (error.message?.includes("Requested entity was not found") && isAiStudioEnv) {
         setHasApiKey(false);
       }
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: error.message?.includes("Requested entity was not found")
-          ? "API Key selection required. Please re-authenticate using the button in the header."
-          : "Network error during synthesis. Please check your connectivity or API project status.",
+          ? (isAiStudioEnv ? "API Key selection required. Please re-authenticate using the button in the header." : "API Key error. Please verify the environment variables in your Vercel project settings.")
+          : "Synthesis failure. This usually occurs if the API key is invalid or the model capacity is exceeded.",
         timestamp: Date.now(),
       }]);
     } finally {
@@ -269,9 +273,9 @@ export default function App() {
     suggestion: 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
   };
 
-  if (!hasApiKey && !isCheckingKey) {
+  if (!hasApiKey && !isCheckingKey && isAiStudioEnv) {
     return (
-      <div className={`flex flex-col h-screen items-center justify-center p-6 text-center ${themeClasses.bg}`}>
+      <div className={`flex flex-col h-[100dvh] items-center justify-center p-6 text-center ${themeClasses.bg}`}>
         <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
           <i className="fas fa-key text-2xl text-white"></i>
         </div>
@@ -299,33 +303,33 @@ export default function App() {
   }
 
   return (
-    <div className={`flex flex-col h-screen transition-colors duration-300 ${themeClasses.bg}`}>
-      <header className={`border-b p-4 flex items-center justify-between z-10 ${themeClasses.header}`}>
+    <div className={`flex flex-col h-[100dvh] transition-colors duration-300 overflow-hidden ${themeClasses.bg}`}>
+      <header className={`border-b p-4 pb-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between z-10 ${themeClasses.header}`}>
         <button
           onClick={goHome}
           className="flex items-center gap-3 group text-left transition-transform active:scale-95"
         >
-          <div className="bg-blue-600 p-2 rounded-lg shadow-lg group-hover:bg-blue-500 transition-colors group-hover:scale-105 transform">
+          <div className="bg-blue-600 p-2 rounded-lg shadow-lg group-hover:bg-blue-500 transition-colors group-hover:scale-105 transform shrink-0">
             <i className="fas fa-network-wired text-xl text-white"></i>
           </div>
-          <div className="flex flex-col">
-            <h1 className="font-bold text-lg leading-tight tracking-tight group-hover:text-blue-500 transition-colors">Cisco CLI Expert</h1>
-            <p className={`text-[10px] uppercase tracking-widest font-semibold hidden sm:block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+          <div className="flex flex-col overflow-hidden">
+            <h1 className="font-bold text-base sm:text-lg leading-tight tracking-tight group-hover:text-blue-500 transition-colors truncate">Cisco CLI Expert</h1>
+            <p className={`text-[9px] sm:text-[10px] uppercase tracking-widest font-semibold hidden xs:block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
               {isDark ? 'DARK INTELLIGENCE OPS' : 'ENTERPRISE LIGHT PROTOCOL'}
             </p>
           </div>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={handleClearHistory}
-            className={`px-3 h-10 rounded-xl border transition-all flex items-center gap-2 ${clearConfirmState
+            className={`px-2 sm:px-3 h-10 rounded-xl border transition-all flex items-center gap-2 ${clearConfirmState
                 ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
                 : `${themeClasses.util} hover:text-rose-500`
               }`}
           >
             <i className={`fas ${clearConfirmState ? 'fa-exclamation-triangle' : 'fa-trash-alt'}`}></i>
-            {clearConfirmState && <span className="text-[10px] font-bold uppercase">Reset?</span>}
+            {clearConfirmState && <span className="text-[10px] font-bold uppercase hidden sm:inline">Reset?</span>}
           </button>
 
           <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-xl border w-10 h-10 flex items-center justify-center ${themeClasses.util}`}>
@@ -333,7 +337,7 @@ export default function App() {
           </button>
 
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`hidden sm:flex items-center gap-3 px-4 h-10 rounded-xl border ${themeClasses.util}`}>
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`hidden md:flex items-center gap-3 px-4 h-10 rounded-xl border ${themeClasses.util}`}>
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               <span className="text-xs font-semibold">{isResearchMode ? 'Research Active' : selectedModel.name.split(' ').slice(1).join(' ')}</span>
               <i className="fas fa-chevron-down text-[10px] opacity-40 ml-1"></i>
@@ -347,10 +351,14 @@ export default function App() {
                       <div className="text-[10px] opacity-60">{m.desc}</div>
                     </button>
                   ))}
-                  <div className="h-px bg-slate-800 my-1 mx-2"></div>
-                  <button onClick={handleOpenKeySelection} className="w-full text-left p-3 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors">
-                    <div className="text-[10px] font-bold uppercase tracking-wider"><i className="fas fa-sync-alt mr-2"></i>Change API Key</div>
-                  </button>
+                  {isAiStudioEnv && (
+                    <>
+                      <div className="h-px bg-slate-800 my-1 mx-2"></div>
+                      <button onClick={handleOpenKeySelection} className="w-full text-left p-3 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors">
+                        <div className="text-[10px] font-bold uppercase tracking-wider"><i className="fas fa-sync-alt mr-2"></i>Change API Key</div>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -359,28 +367,28 @@ export default function App() {
       </header>
 
       <main className="flex-1 overflow-hidden relative flex flex-col max-w-5xl mx-auto w-full">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth pb-8">
           {view === 'home' ? (
-            <div className="min-h-full flex flex-col items-center justify-center text-center p-8 animate-fadeIn">
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-2xl transition-colors ${themeClasses.emptyCard}`}>
-                <i className="fas fa-terminal text-3xl text-blue-500"></i>
+            <div className="min-h-full flex flex-col items-center justify-center text-center p-4 sm:p-8 animate-fadeIn">
+              <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mb-6 shadow-2xl transition-colors ${themeClasses.emptyCard}`}>
+                <i className="fas fa-terminal text-2xl sm:text-3xl text-blue-500"></i>
               </div>
-              <h2 className={`text-2xl font-bold mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Cisco Terminal Intelligence</h2>
-              <p className={`max-w-md mx-auto mb-1 text-sm leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              <h2 className={`text-xl sm:text-2xl font-bold mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Cisco Terminal Intelligence</h2>
+              <p className={`max-w-md mx-auto mb-1 text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                 Real-time command synthesis for IOS, IOS XE, and IOS XR environments.
               </p>
 
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold mt-8 mb-4 transition-all duration-500 text-blue-400">
+              <div className="flex items-center gap-2 text-[9px] sm:text-[10px] uppercase tracking-widest font-bold mt-8 mb-4 transition-all duration-500 text-blue-400">
                 {isPredictive && <i className="fas fa-microchip animate-pulse"></i>}
                 {isPredictive ? 'Predictive Intelligence Active' : 'Standard Protocols'}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:grid-cols-2 gap-3 w-full max-w-2xl mb-8">
                 {dynamicSuggestions.map((suggestion, idx) => (
                   <button
                     key={`${suggestion}-${idx}`}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className={`p-3 border rounded-xl text-left text-sm transition-all flex items-center justify-between group animate-fadeIn ${themeClasses.suggestion}`}
+                    className={`p-3 border rounded-xl text-left text-xs sm:text-sm transition-all flex items-center justify-between group animate-fadeIn ${themeClasses.suggestion}`}
                     style={{ animationDelay: `${idx * 0.1}s` }}
                   >
                     <span className="truncate pr-2">{suggestion}</span>
@@ -389,22 +397,21 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Deep Research Feature Guide (Re-located below suggestions as requested) */}
-              <div className={`w-full max-w-2xl mb-10 p-6 rounded-2xl border transition-all ${isDark ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50/50 border-blue-100 shadow-sm'}`}>
+              <div className={`w-full max-w-2xl mb-10 p-4 sm:p-6 rounded-2xl border transition-all ${isDark ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50/50 border-blue-100 shadow-sm'}`}>
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg">
                     <i className="fas fa-search text-white text-xs"></i>
                   </div>
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-blue-500">Deep Research Protocol</h3>
+                  <h3 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-blue-500">Deep Research Protocol</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-left">
                   <div className="space-y-2">
                     <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-2">
                       <i className="fas fa-question-circle text-blue-500/60"></i> Why use it?
                     </div>
-                    <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Standard AI knowledge has a "cutoff." Deep Research connects Gemini to <strong>live Cisco documentation</strong> and White Papers via Google Search.
+                    <p className={`text-[11px] sm:text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Standard AI knowledge has a "cutoff." Deep Research connects Gemini to <strong>live Cisco documentation</strong> via Google Search.
                     </p>
                   </div>
                   
@@ -412,8 +419,8 @@ export default function App() {
                     <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-2">
                       <i className="fas fa-clock text-blue-500/60"></i> When to use it?
                     </div>
-                    <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Critical for <strong>niche sub-commands</strong> (like IPv6 DHCP flags), high-stakes changes, or verifying syntax for the latest IOS XE software trains.
+                    <p className={`text-[11px] sm:text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Critical for <strong>niche commands</strong>, high-stakes changes, or verifying syntax for the latest IOS software trains.
                     </p>
                   </div>
                   
@@ -421,8 +428,8 @@ export default function App() {
                     <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-2">
                       <i className="fas fa-mouse-pointer text-blue-500/60"></i> How to use it?
                     </div>
-                    <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Toggle the <strong>Search Icon</strong> inside the command bar. The interface will glow blue, signaling that live verification is active.
+                    <p className={`text-[11px] sm:text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Toggle the <strong>Search Icon</strong> inside the command bar. The interface will glow blue when live verification is active.
                     </p>
                   </div>
                 </div>
@@ -431,29 +438,29 @@ export default function App() {
               {messages.length > 0 && (
                 <button
                   onClick={() => setView('chat')}
-                  className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500 hover:text-blue-400 flex items-center gap-2 transition-all opacity-60 hover:opacity-100"
+                  className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500 hover:text-blue-400 flex items-center gap-2 transition-all opacity-60 hover:opacity-100 mb-6"
                 >
                   <i className="fas fa-history"></i> Return to active Session
                 </button>
               )}
             </div>
           ) : (
-            <>
+            <div className="flex flex-col gap-6 w-full">
               {messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
-                  <div className={`max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none p-4 shadow-md' : 'w-full p-2'}`}>
-                    {msg.image && <img src={msg.image} className="max-w-sm rounded-lg mb-3 border border-white/20 shadow-lg" alt="User upload" />}
+                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn w-full`}>
+                  <div className={`${msg.role === 'user' ? 'max-w-[90%] sm:max-w-[85%] bg-blue-600 text-white rounded-2xl rounded-tr-none p-3 sm:p-4 shadow-md' : 'w-full'}`}>
+                    {msg.image && <img src={msg.image} className="max-w-full sm:max-w-sm rounded-lg mb-3 border border-white/20 shadow-lg" alt="User upload" />}
                     {msg.role === 'assistant' ? (
                       msg.metadata ? <ResultCard data={msg.metadata} isDark={isDark} /> : <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>{msg.content}</div>
-                    ) : <p className="text-sm font-medium">{msg.content}</p>}
+                    ) : <p className="text-sm font-medium break-words">{msg.content}</p>}
                   </div>
                 </div>
               ))}
-            </>
+            </div>
           )}
 
           {isLoading && (
-            <div className="flex justify-start animate-pulse p-4">
+            <div className="flex justify-start animate-pulse p-4 w-full">
               <div className={`border p-6 rounded-xl shadow-xl w-full flex flex-col items-center justify-center gap-4 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className="flex gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"></div>
@@ -469,42 +476,40 @@ export default function App() {
           )}
         </div>
 
-        <div className={`p-4 border-t ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className={`p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t ${isDark ? 'bg-slate-950/90 border-slate-800 backdrop-blur-md' : 'bg-white/90 border-slate-200 backdrop-blur-md'}`}>
           <div className="max-w-4xl mx-auto">
-            <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+            <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <button 
                 type="button" 
                 onClick={() => fileInputRef.current.click()} 
-                className={`p-3 w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${themeClasses.util} hover:bg-blue-500/10 hover:text-blue-500 transition-all shadow-sm`}
+                className={`p-3 w-10 h-10 sm:w-12 sm:h-12 rounded-xl border flex items-center justify-center shrink-0 ${themeClasses.util} hover:bg-blue-500/10 hover:text-blue-500 transition-all shadow-sm`}
                 title="Attach Image"
               >
-                <i className="fas fa-camera"></i>
+                <i className="fas fa-camera text-sm sm:text-base"></i>
               </button>
               
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
               
               <div className="relative flex-1 group">
-                {/* Embedded Deep Research Toggle */}
                 <button
                   type="button"
                   onClick={() => setIsResearchMode(!isResearchMode)}
-                  className={`absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-lg flex items-center justify-center transition-all group/res ${
+                  className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-lg flex items-center justify-center transition-all group/res ${
                     isResearchMode 
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
                     : `${isDark ? 'text-slate-500 hover:text-slate-300 bg-slate-800/50' : 'text-slate-400 hover:text-slate-600 bg-slate-200/50'}`
                   }`}
                   title={isResearchMode ? "Disable Deep Research" : "Enable Deep Research (Live Web Verification)"}
                 >
-                  <i className={`fas fa-search ${isResearchMode ? 'animate-pulse' : ''} text-xs`}></i>
+                  <i className={`fas fa-search ${isResearchMode ? 'animate-pulse' : ''} text-[10px] sm:text-xs`}></i>
                   {isResearchMode && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-blue-600"></span>}
                 </button>
 
-                {/* Compact Image Preview Overlay */}
                 {attachedImage && (
-                  <div className="absolute left-14 top-1/2 -translate-y-1/2 z-10 animate-fadeIn">
-                    <div className="relative flex items-center gap-2 bg-blue-600/10 border border-blue-500/30 px-2 py-1 rounded-lg">
-                      <img src={attachedImage} className="w-8 h-8 object-cover rounded border border-blue-500/50" alt="Preview" />
-                      <button onClick={() => setAttachedImage(null)} className="text-rose-500 hover:text-rose-400 transition-colors p-1"><i className="fas fa-times text-[10px]"></i></button>
+                  <div className="absolute left-12 top-1/2 -translate-y-1/2 z-10 animate-fadeIn">
+                    <div className="relative flex items-center gap-1.5 bg-blue-600/10 border border-blue-500/30 px-1.5 py-1 rounded-lg">
+                      <img src={attachedImage} className="w-6 h-6 sm:w-8 sm:h-8 object-cover rounded border border-blue-500/50" alt="Preview" />
+                      <button onClick={() => setAttachedImage(null)} className="text-rose-500 hover:text-rose-400 transition-colors p-0.5"><i className="fas fa-times text-[9px]"></i></button>
                     </div>
                   </div>
                 )}
@@ -513,9 +518,9 @@ export default function App() {
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={isResearchMode ? "Searching live Cisco docs..." : "Enter CLI command or query..."}
-                  className={`w-full py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition-all ${themeClasses.input} ${
-                    attachedImage ? 'pl-28' : 'pl-14'
+                  placeholder={isResearchMode ? "Searching..." : "Enter CLI..."}
+                  className={`w-full py-2.5 sm:py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs sm:text-sm transition-all ${themeClasses.input} ${
+                    attachedImage ? 'pl-24 sm:pl-28' : 'pl-12'
                   }`}
                 />
               </div>
@@ -523,22 +528,22 @@ export default function App() {
               <button 
                 type="button" 
                 onClick={toggleListening} 
-                className={`p-3 w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 transition-all shadow-sm ${
+                className={`p-3 w-10 h-10 sm:w-12 sm:h-12 rounded-xl border flex items-center justify-center shrink-0 transition-all shadow-sm ${
                   isListening ? 'bg-rose-600 border-rose-500 text-white animate-pulse shadow-[0_0_15px_rgba(225,29,72,0.4)]' : 
                   `${themeClasses.util} hover:bg-blue-500/10 hover:text-blue-500`
                 }`}
                 title="Voice Input"
               >
-                <i className="fas fa-microphone"></i>
+                <i className="fas fa-microphone text-sm sm:text-base"></i>
               </button>
 
               <button 
                 type="submit" 
                 disabled={(!inputValue.trim() && !attachedImage) || isLoading} 
-                className="w-12 h-12 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 disabled:opacity-50 shadow-lg flex items-center justify-center shrink-0 transition-all transform active:scale-95"
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 disabled:opacity-50 shadow-lg flex items-center justify-center shrink-0 transition-all transform active:scale-95"
                 title="Execute Query"
               >
-                <i className="fas fa-arrow-right text-lg"></i>
+                <i className="fas fa-arrow-right text-base sm:text-lg"></i>
               </button>
             </form>
           </div>
@@ -550,8 +555,11 @@ export default function App() {
         @keyframes menuIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .animate-fadeIn { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .animate-menuIn { animation: menuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: ${isDark ? '#1e293b' : '#cbd5e1'}; border-radius: 10px; }
+        @media (max-width: 400px) {
+          .xs\\:block { display: block !important; }
+        }
       `}</style>
     </div>
   );
