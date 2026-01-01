@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { synthesizeSpeech } from '../services/geminiService';
 
 const FormattedText = ({ text, isDark, className = "" }) => {
-  if (!text) return null;
+  if (!text || text === "N/A") return null;
   const lines = text.split('\n');
   const renderInline = (input) => {
     const parts = input.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
@@ -50,6 +50,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
 };
 
 const Section = ({ title, icon, content, color, isDark, isCode = false, onListen, isListening, isSynthesizing }) => {
+  if (!content || content === "N/A") return null;
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -116,18 +117,13 @@ export default function ResultCard({ data, isDark }) {
       stopCurrentSpeech();
       return;
     }
-
-    if (activeSpeechId !== null) {
-      stopCurrentSpeech();
-    }
+    if (activeSpeechId !== null) stopCurrentSpeech();
 
     try {
       setIsSynthesizing(true);
       const cleanText = text.replace(/`/g, '');
       const fullSpeechText = prefix ? `${prefix}: ${cleanText}` : cleanText;
-      
       const { audioBuffer, audioCtx } = await synthesizeSpeech(fullSpeechText);
-      
       const source = audioCtx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(audioCtx.destination);
@@ -135,7 +131,6 @@ export default function ResultCard({ data, isDark }) {
         setActiveSpeechId(null);
         audioSourceRef.current = null;
       };
-      
       source.start(0);
       audioSourceRef.current = source;
       setActiveSpeechId(id);
@@ -146,6 +141,21 @@ export default function ResultCard({ data, isDark }) {
       setIsSynthesizing(false);
     }
   };
+
+  if (data.isOutOfScope) {
+    return (
+      <div className={`p-6 rounded-2xl border flex flex-col items-center text-center gap-4 animate-fadeIn ${isDark ? 'bg-amber-950/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'}`}>
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${isDark ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-100 text-amber-600'}`}>
+          <i className="fas fa-shield-halved text-xl"></i>
+        </div>
+        <div>
+          <h3 className={`font-bold uppercase tracking-widest text-xs mb-1 ${isDark ? 'text-amber-500' : 'text-amber-700'}`}>Protocol Exception</h3>
+          <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{data.description}</p>
+        </div>
+        <div className={`text-[10px] font-mono opacity-50 ${isDark ? 'text-amber-500' : 'text-amber-600'}`}>SCOPE_VIOLATION_ERR:DOMAIN_RESTRICTED</div>
+      </div>
+    );
+  }
 
   const playSummary = () => {
     const summaryText = `Cisco command analysis. Command: ${data.syntax}. Category: ${data.deviceCategory}. Mode: ${data.commandMode}. Description: ${data.description.replace(/`/g, '')}. Usage Context: ${data.usageContext.replace(/`/g, '')}`;
@@ -216,7 +226,6 @@ export default function ResultCard({ data, isDark }) {
           isListening={activeSpeechId === 'Syntax'}
           isSynthesizing={isSynthesizing}
         />
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
           <Section 
             title="Description" icon="fa-info-circle" content={data.description} color="text-indigo-500" isDark={isDark} 
@@ -231,42 +240,36 @@ export default function ResultCard({ data, isDark }) {
             isSynthesizing={isSynthesizing}
           />
         </div>
-
         <Section 
           title="Configuration Checklist" icon="fa-tasks" content={data.checklist} color="text-cyan-400" isDark={isDark} 
           onListen={() => handleToggleSpeech('Checklist', data.checklist, "Configuration Checklist")}
           isListening={activeSpeechId === 'Checklist'}
           isSynthesizing={isSynthesizing}
         />
-        
         <Section 
           title="Options" icon="fa-list-ul" content={data.options} color="text-sky-400" isDark={isDark} 
           onListen={() => handleToggleSpeech('Options', data.options, "Available Options")}
           isListening={activeSpeechId === 'Options'}
           isSynthesizing={isSynthesizing}
         />
-        
         <Section 
           title="Troubleshooting & Verification" icon="fa-tools" content={data.troubleshooting} color="text-fuchsia-500" isDark={isDark} 
           onListen={() => handleToggleSpeech('Troubleshooting', data.troubleshooting, "Troubleshooting and Verification")}
           isListening={activeSpeechId === 'Troubleshooting'}
           isSynthesizing={isSynthesizing}
         />
-        
         <Section 
           title="Security Considerations" icon="fa-shield-halved" content={data.security} color="text-orange-500" isDark={isDark} 
           onListen={() => handleToggleSpeech('Security', data.security, "Security Considerations")}
           isListening={activeSpeechId === 'Security'}
           isSynthesizing={isSynthesizing}
         />
-        
         <Section 
           title="Notes" icon="fa-exclamation-triangle" content={data.notes} color="text-rose-500" isDark={isDark} 
           onListen={() => handleToggleSpeech('Notes', data.notes, "Important Notes")}
           isListening={activeSpeechId === 'Notes'}
           isSynthesizing={isSynthesizing}
         />
-
         <Section 
           title="Examples" icon="fa-code" content={data.examples} color="text-emerald-500" isDark={isDark} isCode={true} 
           onListen={() => handleToggleSpeech('Examples', data.examples, "Configuration Examples")}

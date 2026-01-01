@@ -173,13 +173,24 @@ export default function App() {
 
   useEffect(() => {
     const updateSuggestions = async () => {
-      const userQueries = messages
-        .filter(m => m.role === 'user' && m.content !== "Analyze attached image")
-        .map(m => m.content)
-        .slice(-5);
+      // Logic: Only use user queries that received a valid (not out-of-scope) Cisco response
+      const userQueries = [];
+      for (let i = 0; i < messages.length - 1; i++) {
+        const msg = messages[i];
+        const nextMsg = messages[i + 1];
+        
+        const isValidUserMsg = msg.role === 'user' && msg.content !== "Analyze attached image";
+        const isValidAssistantResponse = nextMsg && nextMsg.role === 'assistant' && nextMsg.metadata && !nextMsg.metadata.isOutOfScope;
 
-      if (userQueries.length > 0) {
-        const newSuggestions = await getDynamicSuggestions(userQueries);
+        if (isValidUserMsg && isValidAssistantResponse) {
+          userQueries.push(msg.content);
+        }
+      }
+
+      const recentQueries = userQueries.slice(-5);
+
+      if (recentQueries.length > 0) {
+        const newSuggestions = await getDynamicSuggestions(recentQueries);
         setDynamicSuggestions(newSuggestions);
         localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(newSuggestions));
       } else {
@@ -324,8 +335,6 @@ export default function App() {
   const getShortModelName = () => {
     if (isResearchMode) return 'Research';
     const parts = selectedModel.name.split(' ');
-    // "Gemini 3 Pro" -> "3 Pro"
-    // "Gemini Flash Lite" -> "Flash Lite"
     return parts.slice(1).join(' ');
   };
 

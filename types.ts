@@ -19,6 +19,7 @@ export interface CiscoQueryResponse {
   commandMode: string;
   correction?: string;
   sources?: GroundingSource[];
+  isOutOfScope?: boolean; // Flag for non-Cisco queries
 }
 
 export interface ChatMessage {
