@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: cisco-ios-ai
+metadata:
+    template: azd-init@1.22.5
+services:
+    cisco-ios-ai:
+        project: .
+        host: containerapp
+        language: ts
+        dist: dist
+        docker:
+            path: Dockerfile
+resources:
+    cisco-ios-ai:
+        type: host.containerapp
+        port: 4173
