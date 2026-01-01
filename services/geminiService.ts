@@ -1,5 +1,5 @@
 
-import { Modality } from "@google/genai";
+// Client-side helpers to call the serverless Gemini proxy
 
 /**
  * Fetches command information from Gemini API via serverless function
@@ -96,30 +96,26 @@ async function decodeAudioData(
 }
 
 export const synthesizeSpeech = async (text: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: `Say in a professional, technical voice: ${text}` }] }],
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: 'Kore' },
-        },
-      },
-    },
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'tts', text })
   });
 
-  const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!base64Audio) throw new Error("No audio data received");
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `TTS request failed: ${response.status}`);
+  }
 
-  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+  const { audioBase64, sampleRate = 24000, channels = 1 } = await response.json();
+  if (!audioBase64) throw new Error("No audio data received");
+
+  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate });
   const audioBuffer = await decodeAudioData(
-    decodeBase64(base64Audio),
+    decodeBase64(audioBase64),
     audioCtx,
-    24000,
-    1,
+    sampleRate,
+    channels,
   );
 
   return { audioBuffer, audioCtx };
