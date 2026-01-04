@@ -23,7 +23,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
       }
       if (part.startsWith('`') && part.endsWith('`')) {
         return (
-          <code key={i} className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm inline-block max-w-full whitespace-nowrap overflow-hidden text-ellipsis align-bottom ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
+          <code key={i} className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm inline-block max-w-full whitespace-pre break-keep align-baseline leading-none mx-0.5 ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
             {part.slice(1, -1)}
           </code>
         );
@@ -33,7 +33,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
   };
 
   return (
-    <div className={`${className} flex flex-col gap-1 hyphens-none break-words`}>
+    <div className={`${className} flex flex-col gap-1.5 hyphens-none break-words`}>
       {lines.map((line, idx) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={idx} className="h-1"></div>;
@@ -61,7 +61,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
                     {isNumberBullet ? bulletPrefix : <i className="fas fa-circle text-[6px] text-blue-500/60"></i>}
                   </span>
                   <div className="flex-1 leading-relaxed">
-                    <code className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm inline-block max-w-full whitespace-nowrap overflow-hidden text-ellipsis align-bottom ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
+                    <code className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm inline-block max-w-full whitespace-pre break-keep align-baseline leading-none ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
                       {cmdPart}
                     </code>
                     <span className={`mx-2 font-bold opacity-40 ${isDark ? 'text-slate-50' : 'text-slate-900'}`}>:</span>
@@ -138,7 +138,7 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
           </button>
         )}
       </div>
-      <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${isCode ? 'bg-black text-emerald-400 font-mono text-xs sm:text-sm border-slate-800 overflow-x-auto' : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300 overflow-hidden`}`}>
+      <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${isCode ? 'bg-black text-emerald-400 font-mono text-xs sm:text-sm border-slate-800 overflow-x-auto' : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300`}`}>
         {isCode ? <div className="whitespace-pre leading-relaxed overflow-x-auto pb-1">{processedContent}</div> : <FormattedText text={processedContent} isDark={isDark} className="text-xs sm:text-sm" />}
       </div>
     </div>
