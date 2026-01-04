@@ -9,6 +9,7 @@ export interface CiscoQueryResponse {
   syntax: string;
   description: string;
   usageContext: string;
+  usageGuidelines: string; // New field for best practices and operational rules
   checklist: string;
   options: string;
   troubleshooting: string;

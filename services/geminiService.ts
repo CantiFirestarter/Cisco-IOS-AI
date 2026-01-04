@@ -3,7 +3,13 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
 You are an expert Cisco AI assistant (Cisco CLI Expert).
-Your role is to provide precise technical documentation for Cisco IOS, IOS XE, and IOS XR.
+Your role is to provide precise, consistent, and deterministic technical documentation for Cisco IOS, IOS XE, and IOS XR.
+
+DETERMINISM ENFORCEMENT:
+- You are a technical reference manual, not a creative writer.
+- For identical commands, always provide the exact same definitions, syntax, and guidelines.
+- Do not vary phrasing for variety. Use the most technically accurate and concise standard phrasing.
+- If a command's function is "Enables BGP routing," always use that exact phrase.
 
 SCOPE ENFORCEMENT:
 - You are strictly limited to Cisco networking, CLI commands, network design, and troubleshooting.
@@ -12,18 +18,18 @@ SCOPE ENFORCEMENT:
 RESEARCH PROTOCOL:
 - If a user asks about a specific command and there is ambiguity, you MUST use the googleSearch tool.
 
-FORMATTING RULES (CRITICAL - NO DEVIATION ALLOWED):
+FORMATTING RULES (CRITICAL):
 1. Wrap ALL CLI commands, keywords, and variables in backticks (\`), EXCEPT within the 'examples' field.
-2. Use angle brackets for variables and placeholders (e.g., <vlan-id>, <ip-address>).
-3. If a variable contains choices, use a pipe (|) separator, NEVER a slash (/).
-   - INCORRECT: <in/out>, <up/down>
-   - CORRECT: <in|out>, <up|down>
-4. NEVER use single quotes ('variable') or parentheses (command) around commands or variables in ANY field.
-5. For the 'options' field, use the format: \`- \`command\` : description\`.
-6. Bold important networking concepts and key terms within the 'description' and 'usageContext' fields using double asterisks.
-7. In checklists, provide the command directly or after a colon using backticks.
-8. Examples MUST use standard CLI prompts and strictly follow the angle-bracket rule for placeholders. NEVER use backticks (\`) within the 'examples' field; provide it as raw terminal text.
-9. Always return a JSON object.
+2. Use angle brackets for variables and placeholders (e.g., <vlan-id>).
+3. If a variable contains choices, use a pipe (|) separator: <in|out>.
+4. NEVER use single quotes or parentheses around commands.
+5. For 'options', use: \`- \`command\` : description\`.
+6. Bold important concepts with double asterisks.
+7. Examples MUST use raw terminal text. NO backticks (\`) allowed in the 'examples' field.
+8. Always return a JSON object.
+
+CONTENT SPECIFICS:
+- 'usageGuidelines': Provide operational best practices, performance impact warnings, or deployment recommendations.
 `;
 
 export const getCiscoCommandInfo = async (
@@ -62,6 +68,9 @@ export const getCiscoCommandInfo = async (
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
+        // DETERMINISM CONFIGURATION
+        temperature: 0.1, // Near-zero for deterministic output
+        seed: 42,        // Fixed seed for reproducibility
         tools: (model.includes('pro') || forceSearch) ? [{ googleSearch: {} }] : undefined,
         thinkingConfig: (model.includes('pro') || model.includes('flash')) && isComplex ? { thinkingBudget: 12000 } : undefined,
         responseSchema: {
@@ -74,6 +83,7 @@ export const getCiscoCommandInfo = async (
             syntax: { type: Type.STRING },
             description: { type: Type.STRING },
             usageContext: { type: Type.STRING },
+            usageGuidelines: { type: Type.STRING },
             checklist: { type: Type.STRING },
             options: { type: Type.STRING },
             troubleshooting: { type: Type.STRING },
@@ -82,7 +92,9 @@ export const getCiscoCommandInfo = async (
             examples: { type: Type.STRING },
             correction: { type: Type.STRING },
           },
-          required: ["reasoning", "isOutOfScope", "deviceCategory", "commandMode", "syntax", "description", "usageContext", "checklist", "options", "troubleshooting", "security", "notes", "examples"]
+          // Fixed property ordering ensures the model generates fields in a consistent logical flow
+          propertyOrdering: ["reasoning", "isOutOfScope", "deviceCategory", "commandMode", "syntax", "description", "usageContext", "usageGuidelines", "checklist", "options", "troubleshooting", "security", "notes", "examples", "correction"],
+          required: ["reasoning", "isOutOfScope", "deviceCategory", "commandMode", "syntax", "description", "usageContext", "usageGuidelines", "checklist", "options", "troubleshooting", "security", "notes", "examples"]
         }
       },
     });
@@ -114,8 +126,10 @@ export const getDynamicSuggestions = async (history: string[]) => {
       model: 'gemini-3-flash-preview',
       contents: [{ parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: "Return only a JSON array of strings.",
+        systemInstruction: "Return only a JSON array of strings. Be technically specific.",
         responseMimeType: "application/json",
+        temperature: 0.1,
+        seed: 42,
         responseSchema: {
           type: Type.ARRAY,
           items: { type: Type.STRING }
@@ -174,7 +188,6 @@ export const synthesizeSpeech = async (text: string) => {
   if (!base64Audio) throw new Error("No audio data received");
   const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
   
-  // Ensure the context is running (required by some browsers after instantiation)
   if (audioCtx.state === 'suspended') {
     await audioCtx.resume();
   }

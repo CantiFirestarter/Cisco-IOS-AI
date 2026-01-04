@@ -23,7 +23,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
       }
       if (part.startsWith('`') && part.endsWith('`')) {
         return (
-          <code key={i} className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm break-all ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
+          <code key={i} className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm inline-block max-w-full whitespace-nowrap overflow-hidden text-ellipsis align-bottom ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
             {part.slice(1, -1)}
           </code>
         );
@@ -33,7 +33,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
   };
 
   return (
-    <div className={`${className} flex flex-col gap-1`}>
+    <div className={`${className} flex flex-col gap-1 hyphens-none break-words`}>
       {lines.map((line, idx) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={idx} className="h-1"></div>;
@@ -47,13 +47,11 @@ const FormattedText = ({ text, isDark, className = "" }) => {
           let bulletContent = isNumberBullet ? trimmed.replace(/^\d+\.\s/, '') : trimmed.substring(2);
           
           // SPECIAL HANDLING: Auto-highlight commands in "Command : Description" patterns
-          // Handle both "Cmd : Desc" and "Cmd: Desc"
           const colonMatch = bulletContent.match(/^(.+?)\s?:\s?([^`]+)$/);
           if (colonMatch && !bulletContent.includes('`')) {
             const cmdPart = colonMatch[1].trim();
             const descPart = colonMatch[2].trim();
 
-            // Only treat as a command-first pattern if the left side looks like technical syntax (short, specific chars)
             const looksLikeCommand = cmdPart.length < 50 && !cmdPart.includes('.') && (cmdPart.includes('<') || cmdPart.split(' ').length < 6);
 
             if (looksLikeCommand) {
@@ -63,7 +61,7 @@ const FormattedText = ({ text, isDark, className = "" }) => {
                     {isNumberBullet ? bulletPrefix : <i className="fas fa-circle text-[6px] text-blue-500/60"></i>}
                   </span>
                   <div className="flex-1 leading-relaxed">
-                    <code className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
+                    <code className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm inline-block max-w-full whitespace-nowrap overflow-hidden text-ellipsis align-bottom ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
                       {cmdPart}
                     </code>
                     <span className={`mx-2 font-bold opacity-40 ${isDark ? 'text-slate-50' : 'text-slate-900'}`}>:</span>
@@ -94,10 +92,8 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
   if (!content || content === "N/A") return null;
   const [copied, setCopied] = useState(false);
   
-  // If this is a code block (Examples, Syntax), we strictly disallow backticks for a clean terminal look.
   const rawContent = isCode ? content.replace(/`/g, '') : content;
 
-  // FAIL-SAFE: Transform 'var' into <var>, strip command-wrapping parentheses, and convert slashes to pipes in placeholders
   const processedContent = rawContent
     .replace(/\(\s*(`.*?`)\s*\)/g, '$1')
     .replace(/'([^']+)'/g, '<$1>')
@@ -142,8 +138,8 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
           </button>
         )}
       </div>
-      <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${isCode ? 'bg-black text-emerald-400 font-mono text-xs sm:text-sm border-slate-800' : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300`}`}>
-        {isCode ? <div className="whitespace-pre-wrap leading-relaxed overflow-x-auto touch-pan-x">{processedContent}</div> : <FormattedText text={processedContent} isDark={isDark} className="text-xs sm:text-sm" />}
+      <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${isCode ? 'bg-black text-emerald-400 font-mono text-xs sm:text-sm border-slate-800 overflow-x-auto' : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300 overflow-hidden`}`}>
+        {isCode ? <div className="whitespace-pre leading-relaxed overflow-x-auto pb-1">{processedContent}</div> : <FormattedText text={processedContent} isDark={isDark} className="text-xs sm:text-sm" />}
       </div>
     </div>
   );
@@ -231,7 +227,7 @@ export default function ResultCard({ data, isDark }) {
   return (
     <div className="flex flex-col gap-4 animate-fadeIn w-full overflow-hidden">
       {data.correction && (
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border animate-bounce-subtle ${isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border animate-fadeIn ${isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
           <i className="fas fa-magic text-xs"></i>
           <div className="text-xs font-semibold"><span className="opacity-70">Correction:</span> {data.correction}</div>
         </div>
@@ -291,6 +287,14 @@ export default function ResultCard({ data, isDark }) {
             isSynthesizing={isSynthesizing}
           />
         </div>
+        
+        <Section 
+          title="Usage Guidelines" icon="fa-book-open" content={data.usageGuidelines} color="text-violet-500" isDark={isDark} 
+          onListen={() => handleToggleSpeech('Guidelines', data.usageGuidelines, "Usage Guidelines")}
+          isListening={activeSpeechId === 'Guidelines'}
+          isSynthesizing={isSynthesizing}
+        />
+
         <Section 
           title="Configuration Checklist" icon="fa-tasks" content={data.checklist} color="text-cyan-400" isDark={isDark} 
           onListen={() => handleToggleSpeech('Checklist', data.checklist, "Configuration Checklist")}
