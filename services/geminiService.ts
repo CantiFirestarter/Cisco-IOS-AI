@@ -13,7 +13,7 @@ RESEARCH PROTOCOL:
 - If a user asks about a specific command and there is ambiguity, you MUST use the googleSearch tool.
 
 FORMATTING RULES (CRITICAL - NO DEVIATION ALLOWED):
-1. Wrap ALL CLI commands, keywords, and variables in backticks (\`).
+1. Wrap ALL CLI commands, keywords, and variables in backticks (\`), EXCEPT within the 'examples' field.
 2. Use angle brackets for variables and placeholders (e.g., <vlan-id>, <ip-address>).
 3. If a variable contains choices, use a pipe (|) separator, NEVER a slash (/).
    - INCORRECT: <in/out>, <up/down>
@@ -22,7 +22,7 @@ FORMATTING RULES (CRITICAL - NO DEVIATION ALLOWED):
 5. For the 'options' field, use the format: \`- \`command\` : description\`.
 6. Bold important networking concepts and key terms within the 'description' and 'usageContext' fields using double asterisks.
 7. In checklists, provide the command directly or after a colon using backticks.
-8. Examples MUST use standard CLI prompts and strictly follow the angle-bracket rule for placeholders.
+8. Examples MUST use standard CLI prompts and strictly follow the angle-bracket rule for placeholders. NEVER use backticks (\`) within the 'examples' field; provide it as raw terminal text.
 9. Always return a JSON object.
 `;
 

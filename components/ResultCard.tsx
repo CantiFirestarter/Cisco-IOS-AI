@@ -94,8 +94,11 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
   if (!content || content === "N/A") return null;
   const [copied, setCopied] = useState(false);
   
+  // If this is a code block (Examples, Syntax), we strictly disallow backticks for a clean terminal look.
+  const rawContent = isCode ? content.replace(/`/g, '') : content;
+
   // FAIL-SAFE: Transform 'var' into <var>, strip command-wrapping parentheses, and convert slashes to pipes in placeholders
-  const processedContent = content
+  const processedContent = rawContent
     .replace(/\(\s*(`.*?`)\s*\)/g, '$1')
     .replace(/'([^']+)'/g, '<$1>')
     .replace(/<([^>]+)\/([^>]+)>/g, '<$1|$2>');
