@@ -5,7 +5,7 @@
  * Author: Canti Firestarter <canti@firestartforge.dev>
  */
 
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Modality, ThinkingLevel } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
 You are an expert Cisco AI assistant (Cisco CLI Expert).
@@ -64,7 +64,7 @@ export const validateApiKey = async (testKey: string) => {
 export const getCiscoCommandInfo = async (
   query: string, 
   fileData?: { data: string, mimeType: string }, 
-  model: string = 'gemini-3-pro-preview', 
+  model: string = 'gemini-3.1-pro-preview', 
   forceSearch: boolean = false,
   voiceInput: boolean = false
 ) => {
@@ -100,7 +100,7 @@ export const getCiscoCommandInfo = async (
         temperature: 0.1,
         seed: 42,
         tools: (model.includes('pro') || forceSearch) ? [{ googleSearch: {} }] : undefined,
-        thinkingConfig: (model.includes('pro') || model.includes('flash')) && isComplex ? { thinkingBudget: 12000 } : undefined,
+        thinkingConfig: (model.includes('pro') || model.includes('flash')) && isComplex ? { thinkingLevel: ThinkingLevel.HIGH } : undefined,
         responseSchema: {
           type: Type.OBJECT,
           properties: {

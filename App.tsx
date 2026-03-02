@@ -121,7 +121,7 @@ export default function App() {
     setIsLoading(true); setView('chat');
 
     try {
-      const res = await getCiscoCommandInfo(userMsg.content, userMsg.image ? { data: userMsg.image, mimeType: 'image/jpeg' } : (userMsg.file ? { data: userMsg.file.data, mimeType: userMsg.file.mimeType } : undefined), isResearchMode ? 'gemini-3-pro-preview' : selectedModel.id, isResearchMode);
+      const res = await getCiscoCommandInfo(userMsg.content, userMsg.image ? { data: userMsg.image, mimeType: 'image/jpeg' } : (userMsg.file ? { data: userMsg.file.data, mimeType: userMsg.file.mimeType } : undefined), isResearchMode ? 'gemini-3.1-pro-preview' : selectedModel.id, isResearchMode);
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: `Analysis complete.`, timestamp: Date.now(), metadata: res }]);
     } catch (error: any) {
       if (error.message?.includes("Requested entity was not found") && (window as any).aistudio) setHasApiKey(false);
