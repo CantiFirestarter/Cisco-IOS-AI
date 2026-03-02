@@ -59,7 +59,7 @@ export default function App() {
         return;
       }
 
-      if (process.env.API_KEY) {
+      if (process.env.GEMINI_API_KEY || process.env.API_KEY) {
         setHasApiKey(true);
         setIsCheckingKey(false);
         return;
@@ -94,7 +94,7 @@ export default function App() {
   const handleDisconnectKey = () => {
     if (window.confirm("Disconnect your API Key? This will require you to re-enter it to use the app.")) {
       localStorage.removeItem('cisco_expert_api_key');
-      if (!process.env.API_KEY) {
+      if (!(process.env.GEMINI_API_KEY || process.env.API_KEY)) {
         setHasApiKey(false);
       } else {
          alert("User key removed. Reverting to system key if available.");

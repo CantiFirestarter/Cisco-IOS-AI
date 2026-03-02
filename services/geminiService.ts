@@ -39,7 +39,7 @@ const getApiKey = () => {
     const stored = localStorage.getItem('cisco_expert_api_key');
     if (stored) return stored;
   }
-  return process.env.API_KEY || '';
+  return process.env.GEMINI_API_KEY || process.env.API_KEY || '';
 };
 
 /**

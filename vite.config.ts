@@ -7,6 +7,7 @@ export default defineConfig({
   define: {
     // This injects the environment variables at build time
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+    'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY),
     'process.env.GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID),
   },
   build: {
